@@ -714,6 +714,14 @@
         let hasMoreMessages = true;
         let fileUploadInProgress = false;
 
+        // 打印当前用户信息用于调试
+        console.log('=== 当前用户信息 ===');
+        console.log('IP:', currentUser.ip);
+        console.log('Unique ID:', currentUser.uniqueId);
+        console.log('Name:', currentUser.name);
+        console.log('Display Name:', currentUser.displayName);
+        console.log('==================');
+
         // 连接状态管理
         function updateConnectionStatus(status) {
             const statusElement = document.getElementById('connectionStatus');
@@ -757,6 +765,9 @@
                         // 根据消息类型处理不同的数据
                         if (data.type === 'userCount') {
                             updateOnlineUserCount(data.count);
+                        } else if (data.recalled) {
+                            // 处理撤回消息的实时更新
+                            updateMessageRecallStatus(data.id);
                         } else {
                             // 普通聊天消息
                             addMessageToUI(data);
@@ -812,14 +823,20 @@
             const messagesList = document.getElementById('messagesList');
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
+            messageDiv.setAttribute('data-message-id', message.id);
 
             // 使用更精确的用户身份判断：优先使用uniqueId，如果没有uniqueId则不匹配
             const isOwnMessage = message.uniqueId && currentUser.uniqueId && 
                                (message.uniqueId === currentUser.uniqueId);
             
             console.log('Message check:', {
+                messageId: message.id,
                 messageUniqueId: message.uniqueId,
+                messageUserName: message.userName,
+                messageUserIp: message.userIp,
                 currentUserUniqueId: currentUser.uniqueId,
+                currentUserName: currentUser.name,
+                currentUserIp: currentUser.ip,
                 isOwn: isOwnMessage
             });
 
@@ -909,6 +926,7 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                         data.messages.reverse().forEach(message => {
                             const messageDiv = document.createElement('div');
                             messageDiv.className = 'message';
+                            messageDiv.setAttribute('data-message-id', message.id);
 
                             // 使用更精确的用户身份判断
                             const isOwnMessage = message.uniqueId && currentUser.uniqueId && 
@@ -1031,31 +1049,37 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             }
         }
 
-        // 更新消息撤回状态（用于HTTP撤回的UI更新）
+        // 更新消息撤回状态（用于WebSocket和HTTP撤回的UI更新）
         function updateMessageRecallStatus(messageId) {
-            const messageElements = document.querySelectorAll('.message');
-            messageElements.forEach(element => {
-                const recallBtn = element.querySelector('.recall-btn');
-                if (recallBtn && recallBtn.getAttribute('onclick').includes(messageId)) {
-                    // 更新消息内容为撤回状态
-                    const messageText = element.querySelector('.message-text');
-                    const messageActions = element.querySelector('.message-actions');
+            const messagesList = document.getElementById('messagesList');
+            // 使用data-message-id属性直接查找消息元素
+            const messageElement = messagesList.querySelector(`[data-message-id="${messageId}"]`);
+            
+            if (messageElement) {
+                // 更新消息内容为撤回状态
+                const messageText = messageElement.querySelector('.message-text');
+                const messageActions = messageElement.querySelector('.message-actions');
+                const fileMessage = messageElement.querySelector('.file-message');
 
+                if (messageText) {
                     messageText.textContent = '[消息已被撤回]';
                     messageText.classList.add('recalled');
-
-                    // 移除撤回按钮
-                    if (messageActions) {
-                        messageActions.remove();
-                    }
-
-                    // 移除文件显示（如果有）
-                    const fileMessage = element.querySelector('.file-message');
-                    if (fileMessage) {
-                        fileMessage.remove();
-                    }
                 }
-            });
+
+                // 移除操作按钮
+                if (messageActions) {
+                    messageActions.remove();
+                }
+
+                // 移除文件显示（如果有）
+                if (fileMessage) {
+                    fileMessage.remove();
+                }
+                
+                console.log('消息已撤回，ID:', messageId);
+            } else {
+                console.warn('未找到消息元素，ID:', messageId);
+            }
         }
 
         // 复制消息功能

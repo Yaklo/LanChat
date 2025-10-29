@@ -341,15 +341,24 @@
             background: var(--bg-tertiary);
             color: var(--text-primary);
             border: 1px solid var(--border-primary);
-            padding: 12px 16px;
+            padding: 12px 24px;
             border-radius: 25px;
             cursor: pointer;
             font-size: 16px;
-            transition: background-color 0.3s;
+            font-weight: bold;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .file-btn:hover {
             background: var(--bg-hover);
+        }
+
+        .file-btn:disabled {
+            background: var(--text-muted);
+            cursor: not-allowed;
         }
 
         .message-input {
@@ -379,16 +388,40 @@
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
-            transition: background-color 0.3s;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 80px;
         }
 
-        .send-btn:hover {
+        .send-btn:hover:not(:disabled) {
             background: var(--primary-hover);
         }
 
         .send-btn:disabled {
             background: var(--text-muted);
             cursor: not-allowed;
+        }
+
+        .send-btn.overlimit {
+            background: var(--danger);
+            cursor: not-allowed;
+        }
+
+        .send-btn.overlimit:hover {
+            background: var(--danger);
+        }
+
+        .send-btn-text {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .send-btn-size {
+            font-size: 11px;
+            opacity: 0.8;
         }
 
         .typing-indicator {
@@ -704,7 +737,7 @@
             <div class="chat-input-container">
                 <div class="input-wrapper">
                     <div class="file-input-wrapper">
-                        <label for="fileInput" class="file-btn">📎</label>
+                        <label for="fileInput" class="file-btn">📎 附件</label>
                         <input type="file" id="fileInput" />
                     </div>
                     <textarea
@@ -713,7 +746,10 @@
                         placeholder="输入消息..."
                         rows="1"
                     ></textarea>
-                    <button class="send-btn" id="sendBtn">发送</button>
+                    <button class="send-btn" id="sendBtn">
+                        <span class="send-btn-text">发送</span>
+                        <span class="send-btn-size">0B</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -1491,8 +1527,10 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             }
 
             fileUploadInProgress = true;
-            document.getElementById('sendBtn').disabled = true;
-            document.getElementById('sendBtn').textContent = '上传中...';
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+            const textSpan = sendBtn.querySelector('.send-btn-text');
+            if (textSpan) textSpan.textContent = '上传中...';
 
             const formData = new FormData();
             formData.append('file', file);
@@ -1527,8 +1565,9 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             })
             .finally(() => {
                 fileUploadInProgress = false;
-                document.getElementById('sendBtn').disabled = false;
-                document.getElementById('sendBtn').textContent = '发送';
+                const textSpan = sendBtn.querySelector('.send-btn-text');
+                if (textSpan) textSpan.textContent = '发送';
+                updateSendButtonState();
             });
         }
 
@@ -1538,11 +1577,44 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             container.scrollTop = container.scrollHeight;
         }
 
+        // 更新发送按钮的消息大小显示和状态
+        function updateSendButtonState() {
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const content = messageInput.value;
+            const messageSize = new Blob([content]).size;
+            const sizeText = getSizeText(messageSize);
+            const sizeElement = sendBtn.querySelector('.send-btn-size');
+            
+            if (sizeElement) {
+                sizeElement.textContent = sizeText;
+            }
+
+            // 检查是否超过限制
+            if (messageSize > MAX_MESSAGE_SIZE) {
+                sendBtn.classList.add('overlimit');
+                sendBtn.disabled = true;
+            } else {
+                sendBtn.classList.remove('overlimit');
+                sendBtn.disabled = fileUploadInProgress;
+            }
+        }
+
+        // 格式化显示文件大小
+        function getSizeText(bytes) {
+            if (bytes === 0) return '0B';
+            if (bytes < 1024) return bytes + 'B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + 'KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+        }
+
         // 自动调整输入框高度
         function autoResizeTextarea() {
             const textarea = document.getElementById('messageInput');
             textarea.style.height = 'auto';
             textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+            // 同时更新发送按钮状态
+            updateSendButtonState();
         }
 
         // 事件监听器
@@ -1578,7 +1650,6 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
 
             // 发送按钮
             document.getElementById('sendBtn').addEventListener('click', sendMessage);
-
             // 消息输入框
             const messageInput = document.getElementById('messageInput');
             messageInput.addEventListener('keypress', function(e) {
@@ -1589,6 +1660,9 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             });
 
             messageInput.addEventListener('input', autoResizeTextarea);
+            
+            // 初始化发送按钮状态
+            updateSendButtonState();
 
             // 文件选择
             document.getElementById('fileInput').addEventListener('change', function(e) {

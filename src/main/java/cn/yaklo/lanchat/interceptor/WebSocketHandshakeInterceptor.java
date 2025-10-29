@@ -2,10 +2,12 @@ package cn.yaklo.lanchat.interceptor;
 
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.server.HandshakeInterceptor;
 
+import javax.servlet.http.HttpSession;
 import java.util.Map;
 
 @Component
@@ -25,6 +27,19 @@ public class WebSocketHandshakeInterceptor implements HandshakeInterceptor {
         // 将客户端IP存储到WebSocket session属性中
         attributes.put("clientIp", clientIp);
         attributes.put("handshakeTime", System.currentTimeMillis());
+
+        // 尝试从HTTP Session中获取自定义用户名
+        if (request instanceof ServletServerHttpRequest) {
+            ServletServerHttpRequest servletRequest = (ServletServerHttpRequest) request;
+            HttpSession httpSession = servletRequest.getServletRequest().getSession(false);
+            if (httpSession != null) {
+                String customUserName = (String) httpSession.getAttribute("customUserName");
+                if (customUserName != null && !customUserName.trim().isEmpty()) {
+                    attributes.put("customUserName", customUserName);
+                    System.out.println("从HTTP Session获取到自定义用户名: " + customUserName);
+                }
+            }
+        }
 
         System.out.println("握手成功，IP已存储到session属性");
         System.out.println("====================");

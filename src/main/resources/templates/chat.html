@@ -212,7 +212,7 @@
         .message-text {
             word-wrap: break-word;
             line-height: 1.4;
-            white-space: pre-line;
+            white-space: pre-wrap;
             overflow-wrap: break-word;
         }
 
@@ -904,7 +904,27 @@
             if (customUsername && customUsername.trim()) {
                 currentUser.name = customUsername;
                 document.getElementById('currentUserName').textContent = customUsername;
+                
+                // 同步到后端session，确保WebSocket握手时能获取到自定义用户名
+                // 返回Promise以便等待同步完成
+                return fetch('/api/update-username', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userName: customUsername })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log('用户名已同步到后端session:', data.userName);
+                    }
+                })
+                .catch(error => {
+                    console.error('同步用户名到后端失败:', error);
+                });
             }
+            return Promise.resolve(); // 没有自定义用户名时返回resolved Promise
         }
 
 
@@ -1513,14 +1533,14 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             // 创建调试面板
             createDebugPanel();
 
-            // 加载自定义用户名
-            loadCustomUsername();
-
             // 初始化用户名编辑器
             initUsernameEditor();
 
-            // 连接WebSocket
-            connect();
+            // 先加载并同步自定义用户名，完成后再连接WebSocket
+            loadCustomUsername().then(() => {
+                // 确保用户名同步完成后再连接WebSocket
+                connect();
+            });
 
             // 菜单切换按钮（移动端）
             const menuToggle = document.getElementById('menuToggle');

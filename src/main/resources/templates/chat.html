@@ -825,20 +825,37 @@
             messageDiv.className = 'message';
             messageDiv.setAttribute('data-message-id', message.id);
 
-            // 使用更精确的用户身份判断：优先使用uniqueId，如果没有uniqueId则不匹配
-            const isOwnMessage = message.uniqueId && currentUser.uniqueId && 
-                               (message.uniqueId === currentUser.uniqueId);
-            
-            console.log('Message check:', {
-                messageId: message.id,
-                messageUniqueId: message.uniqueId,
-                messageUserName: message.userName,
-                messageUserIp: message.userIp,
-                currentUserUniqueId: currentUser.uniqueId,
-                currentUserName: currentUser.name,
-                currentUserIp: currentUser.ip,
-                isOwn: isOwnMessage
+            // 改进的用户身份判断逻辑：多重验证机制
+            let isOwnMessage = false;
+
+            // 方法1：优先使用uniqueId比较（最可靠）
+            if (message.uniqueId && currentUser.uniqueId) {
+                isOwnMessage = message.uniqueId.trim() === currentUser.uniqueId.trim();
+            }
+            // 方法2：备用方案 - 使用IP + 用户名组合比较
+            else if (message.userIp && message.userName &&
+                     currentUser.ip && currentUser.name) {
+                isOwnMessage = (message.userIp === currentUser.ip &&
+                               message.userName === currentUser.name);
+            }
+
+            // 调试信息 - 详细记录身份判断过程
+            console.log('=== 用户身份判断详情 ===');
+            console.log('消息ID:', message.id);
+            console.log('消息发送者信息:', {
+                uniqueId: message.uniqueId,
+                userName: message.userName,
+                userIp: message.userIp
             });
+            console.log('当前用户信息:', {
+                uniqueId: currentUser.uniqueId,
+                name: currentUser.name,
+                ip: currentUser.ip
+            });
+            console.log('身份判断结果: isOwnMessage =', isOwnMessage);
+            console.log('判断依据:',
+                message.uniqueId && currentUser.uniqueId ? 'uniqueId比较' : 'IP+用户名比较');
+            console.log('========================');
 
             if (isOwnMessage) {
                 messageDiv.classList.add('own');

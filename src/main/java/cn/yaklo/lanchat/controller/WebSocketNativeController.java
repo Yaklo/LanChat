@@ -32,9 +32,12 @@ public class WebSocketNativeController extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        String clientIp = getClientIp(session);
+        // 从WebSocket连接的URI中提取客户端信息
+        String clientInfo = extractClientInfo(session);
+        // 将客户端信息存储到session属性中
+        session.getAttributes().put("clientInfo", clientInfo);
         sessions.put(session.getId(), session);
-        System.out.println("WebSocket连接建立: " + clientIp + ", Session: " + session.getId());
+        System.out.println("WebSocket连接建立: " + clientInfo + ", Session: " + session.getId());
 
         // 发送最近的消息给新连接的客户端
         List<ChatMessage> recentMessages = chatService.getRecentMessages(30);
@@ -86,6 +89,15 @@ public class WebSocketNativeController extends TextWebSocketHandler {
         String messageType = (String) payload.get("messageType");
         Long fileId = payload.get("fileId") != null ? Long.valueOf(payload.get("fileId").toString()) : null;
 
+        // 添加调试信息
+        System.out.println("=== 接收到消息 ===");
+        System.out.println("用户IP: " + userIp);
+        System.out.println("用户唯一ID: " + uniqueId);
+        System.out.println("用户名: " + userName);
+        System.out.println("消息内容: " + content);
+        System.out.println("Session ID: " + session.getId());
+        System.out.println("==================");
+
         ChatMessage savedMessage = chatService.saveMessage(userIp, uniqueId, userName, content,
                 ChatMessage.MessageType.valueOf(messageType), fileId);
 
@@ -133,10 +145,35 @@ public class WebSocketNativeController extends TextWebSocketHandler {
         }
     }
 
+    private String extractClientInfo(WebSocketSession session) {
+        try {
+            // 尝试从WebSocket连接的URI中提取客户端信息
+            String uri = session.getUri().toString();
+            System.out.println("WebSocket连接URI: " + uri);
+
+            // 从URI参数中提取客户端信息（如果有的话）
+            if (uri.contains("client=")) {
+                String[] params = uri.split("&");
+                for (String param : params) {
+                    if (param.startsWith("client=")) {
+                        return param.substring(7); // 去掉"client="前缀
+                    }
+                }
+            }
+
+            // 如果URI中没有客户端信息，使用session ID + 时间戳作为唯一标识
+            return "Client_" + session.getId().substring(0, 8) + "_" + System.currentTimeMillis();
+        } catch (Exception e) {
+            System.err.println("提取客户端信息失败: " + e.getMessage());
+            // 降级处理：使用session ID作为客户端标识
+            return "Client_" + session.getId().substring(0, 8);
+        }
+    }
+
     private String getClientIp(WebSocketSession session) {
-        // 从session属性中获取IP地址
+        // 从session属性中获取客户端信息
         Map<String, Object> attributes = session.getAttributes();
-        return (String) attributes.get("clientIp");
+        return (String) attributes.get("clientInfo");
     }
 
     public int getConnectedCount() {

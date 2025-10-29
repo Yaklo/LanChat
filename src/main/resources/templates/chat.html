@@ -997,11 +997,9 @@
         // 切换调试面板显示
         function toggleDebugPanel() {
             const panel = document.getElementById('debugPanel');
-            const button = document.getElementById('debugToggleBtn');
-            if (panel && button) {
+            if (panel) {
                 const isVisible = panel.style.display !== 'none';
                 panel.style.display = isVisible ? 'none' : 'block';
-                button.textContent = isVisible ? '🔍 显示调试面板' : '🔍 隐藏调试面板';
             }
         }
 
@@ -1404,23 +1402,15 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
 
             // 获取消息内容
             const messageTextElement = messageDiv.querySelector('.message-text');
-            const messageHeaderElement = messageDiv.querySelector('.message-header');
             const fileMessageElement = messageDiv.querySelector('.file-message');
 
-            if (!messageTextElement || !messageHeaderElement) {
+            if (!messageTextElement) {
                 console.error('找不到消息内容');
                 return;
             }
 
-            // 构建复制内容
-            let copyContent = '';
-
-            // 添加消息头部信息（用户名和时间）
-            const headerText = messageHeaderElement.textContent;
-            copyContent += headerText + '\n\n';
-
-            // 添加消息正文
-            copyContent += messageTextElement.textContent;
+            // 构建复制内容 - 只复制消息正文
+            let copyContent = messageTextElement.textContent;
 
             // 如果有文件，添加文件信息
             if (fileMessageElement) {

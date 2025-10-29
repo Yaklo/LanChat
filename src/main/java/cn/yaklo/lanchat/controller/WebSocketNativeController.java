@@ -201,8 +201,9 @@ public class WebSocketNativeController extends TextWebSocketHandler {
                 System.out.println("✓ 使用握手拦截器设置的IP: " + handshakeIp);
 
                 // 尝试从URI参数中获取完整的客户端信息（如果有的话）
-                String finalUniqueId = "unknown_" + System.currentTimeMillis();
+                String finalUniqueId = null;
                 String finalName = "未知用户";
+                String payloadIp = null;
 
                 if (uri != null && uri.contains("client=")) {
                     try {
@@ -219,9 +220,11 @@ public class WebSocketNativeController extends TextWebSocketHandler {
                             // 解析客户端信息（格式：ip|uniqueId|name）
                             String[] parts = clientInfo.split("\\|");
                             if (parts.length >= 3) {
+                                payloadIp = parts[0];
                                 finalUniqueId = parts[1];
                                 finalName = parts[2];
                                 System.out.println("✓ 从URL解析成功:");
+                                System.out.println("  Payload IP: " + payloadIp);
                                 System.out.println("  UniqueID: " + finalUniqueId);
                                 System.out.println("  Name: " + finalName);
                             }
@@ -231,12 +234,27 @@ public class WebSocketNativeController extends TextWebSocketHandler {
                     }
                 }
 
+                // 智能IP选择：优先使用握手拦截器获取的真实IP
+                String finalIp = handshakeIp;
+
+                // 智能UniqueID处理：如果存在UniqueID，则使用现有的
+                if (finalUniqueId == null || finalUniqueId.isEmpty() || finalUniqueId.startsWith("unknown_")) {
+                    // 生成基于真实IP的临时UniqueID
+                    String userAgent = session.getHandshakeHeaders().getFirst("User-Agent");
+                    if (userAgent == null) {
+                        userAgent = "Unknown";
+                    }
+                    finalUniqueId = cn.yaklo.lanchat.util.IpUtil.generateTemporarySessionId(finalIp, userAgent);
+                    System.out.println("生成临时UniqueID: " + finalUniqueId);
+                }
+
                 // 将信息存储到session属性中
-                session.getAttributes().put("clientIp", handshakeIp);
+                session.getAttributes().put("clientIp", finalIp);
                 session.getAttributes().put("clientUniqueId", finalUniqueId);
                 session.getAttributes().put("clientName", finalName);
+                session.getAttributes().put("payloadIp", payloadIp);
 
-                String clientInfo = handshakeIp + "|" + finalUniqueId + "|" + finalName;
+                String clientInfo = finalIp + "|" + finalUniqueId + "|" + finalName;
                 System.out.println("最终客户端信息: " + clientInfo);
                 System.out.println("========================");
                 return clientInfo;

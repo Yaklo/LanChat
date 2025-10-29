@@ -104,9 +104,63 @@ public class IpUtil {
     }
 
     public static String getUniqueUserId(HttpServletRequest request) {
-        // 结合IP、User-Agent和Session ID生成最唯一的用户标识
+        // 生成真正唯一的用户标识，包含IP、浏览器指纹和会话信息
         String ip = getClientIpAddress(request);
         String sessionId = getSessionId(request);
-        return ip + "@" + sessionId.substring(0, 8);
+        String userAgent = request.getHeader("User-Agent");
+
+        // 生成浏览器指纹（基于User-Agent的哈希值）
+        String browserFingerprint = generateBrowserFingerprint(userAgent);
+
+        // 组合生成真正的唯一ID
+        String uniqueId = ip + "#" + browserFingerprint + "@" + sessionId.substring(0, 8);
+
+        System.out.println("=== 生成用户唯一ID ===");
+        System.out.println("IP: " + ip);
+        System.out.println("Browser Fingerprint: " + browserFingerprint);
+        System.out.println("Session ID: " + sessionId);
+        System.out.println("最终UniqueID: " + uniqueId);
+        System.out.println("====================");
+
+        return uniqueId;
+    }
+
+    /**
+     * 生成浏览器指纹
+     */
+    private static String generateBrowserFingerprint(String userAgent) {
+        if (userAgent == null) {
+            userAgent = "Unknown";
+        }
+
+        // 使用User-Agent的哈希值作为浏览器指纹
+        try {
+            // 简单的哈希算法：取User-Agent的前几个字符的哈希
+            String normalized = userAgent.toLowerCase()
+                .replace(" ", "")
+                .replace("/", "")
+                .replace(";", "")
+                .replace(":", "");
+
+            if (normalized.length() > 20) {
+                normalized = normalized.substring(0, 20);
+            }
+
+            return Integer.toHexString(normalized.hashCode()).substring(0, 8);
+        } catch (Exception e) {
+            System.err.println("生成浏览器指纹失败: " + e.getMessage());
+            return "default";
+        }
+    }
+
+    /**
+     * 生成临时会话ID（用于WebSocket连接）
+     */
+    public static String generateTemporarySessionId(String ip, String userAgent) {
+        String fingerprint = generateBrowserFingerprint(userAgent);
+        long timestamp = System.currentTimeMillis();
+
+        // 临时ID格式：ip#fingerprint_timestamp
+        return ip + "#" + fingerprint + "_" + timestamp;
     }
 }

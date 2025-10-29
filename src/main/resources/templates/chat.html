@@ -722,6 +722,69 @@
         console.log('Display Name:', currentUser.displayName);
         console.log('==================');
 
+        // 辅助函数：从uniqueId中提取浏览器指纹
+        function extractBrowserFingerprint(uniqueId) {
+            if (!uniqueId) return null;
+
+            // 处理新格式：ip#fingerprint@sessionId
+            if (uniqueId.includes('#')) {
+                const parts = uniqueId.split('#');
+                if (parts.length >= 2) {
+                    const fingerprintWithSession = parts[1];
+                    const atIndex = fingerprintWithSession.indexOf('@');
+                    if (atIndex > 0) {
+                        return fingerprintWithSession.substring(0, atIndex);
+                    }
+                }
+            }
+
+            // 处理旧格式：ip@sessionId
+            if (uniqueId.includes('@')) {
+                const parts = uniqueId.split('@');
+                if (parts.length >= 2) {
+                    return 'legacy_' + parts[0]; // 为旧格式生成标识
+                }
+            }
+
+            return null;
+        }
+
+        // 辅助函数：从uniqueId中提取Session ID
+        function extractSessionId(uniqueId) {
+            if (!uniqueId) return null;
+
+            // 查找@符号后的部分
+            const atIndex = uniqueId.lastIndexOf('@');
+            if (atIndex > 0 && atIndex < uniqueId.length - 1) {
+                return uniqueId.substring(atIndex + 1);
+            }
+
+            return null;
+        }
+
+        // 辅助函数：从uniqueId中提取IP地址
+        function extractIpFromUniqueId(uniqueId) {
+            if (!uniqueId) return null;
+
+            // 处理新格式：ip#fingerprint@sessionId
+            if (uniqueId.includes('#')) {
+                const parts = uniqueId.split('#');
+                if (parts.length >= 1) {
+                    return parts[0];
+                }
+            }
+
+            // 处理旧格式：ip@sessionId
+            if (uniqueId.includes('@')) {
+                const parts = uniqueId.split('@');
+                if (parts.length >= 1) {
+                    return parts[0];
+                }
+            }
+
+            return null;
+        }
+
         // 连接状态管理
         function updateConnectionStatus(status) {
             const statusElement = document.getElementById('connectionStatus');
@@ -737,6 +800,78 @@
                 case 'connecting':
                     statusElement.textContent = '连接中...';
                     break;
+            }
+
+            // 调试信息：记录连接状态变化
+            console.log('=== 连接状态更新 ===');
+            console.log('新状态:', status);
+            console.log('当前用户信息:', currentUser);
+            console.log('当前时间:', new Date().toLocaleString());
+            console.log('==================');
+        }
+
+        // 调试面板：实时显示用户身份识别信息
+        function createDebugPanel() {
+            const debugPanel = document.createElement('div');
+            debugPanel.id = 'debugPanel';
+            debugPanel.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                width: 300px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                font-size: 12px;
+                z-index: 10000;
+                max-height: 400px;
+                overflow-y: auto;
+            `;
+
+            debugPanel.innerHTML = `
+                <h4>🔍 调试面板</h4>
+                <div id="debugCurrentUser">
+                    <strong>当前用户:</strong><br>
+                    IP: <span id="debugCurrentIp">${currentUser.ip}</span><br>
+                    UniqueID: <span id="debugCurrentUniqueId">${currentUser.uniqueId}</span><br>
+                    Name: <span id="debugCurrentName">${currentUser.name}</span><br>
+                    Fingerprint: <span id="debugCurrentFingerprint">${extractBrowserFingerprint(currentUser.uniqueId)}</span>
+                </div>
+                <hr>
+                <div id="debugLastMessage">
+                    <strong>最后消息:</strong><br>
+                    <span id="debugLastMessageInfo">暂无</span>
+                </div>
+                <hr>
+                <button onclick="toggleDebugPanel()" style="background: #333; color: white; border: none; padding: 5px; cursor: pointer;">隐藏/显示</button>
+            `;
+
+            document.body.appendChild(debugPanel);
+        }
+
+        // 切换调试面板显示
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debugPanel');
+            if (panel) {
+                panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        // 更新调试面板中的最后消息信息
+        function updateDebugLastMessage(message, isOwnMessage, matchReason) {
+            const lastMessageElement = document.getElementById('debugLastMessageInfo');
+            if (lastMessageElement) {
+                lastMessageElement.innerHTML = `
+                    消息ID: ${message.id}<br>
+                    发送者: ${message.userName}<br>
+                    IP: ${message.userIp}<br>
+                    UniqueID: ${message.uniqueId}<br>
+                    Fingerprint: ${extractBrowserFingerprint(message.uniqueId)}<br>
+                    是自己: ${isOwnMessage}<br>
+                    匹配原因: ${matchReason || '未知'}<br>
+                    时间: ${new Date().toLocaleString()}
+                `;
             }
         }
 
@@ -837,18 +972,60 @@
             messageDiv.className = 'message';
             messageDiv.setAttribute('data-message-id', message.id);
 
-            // 改进的用户身份判断逻辑：多重验证机制
+            // 彻底改进的用户身份判断逻辑：智能多重验证机制
             let isOwnMessage = false;
+            let matchReason = '';
 
-            // 方法1：优先使用uniqueId比较（最可靠）
+            // 方法1：完整uniqueId精确匹配（最高优先级）
             if (message.uniqueId && currentUser.uniqueId) {
-                isOwnMessage = message.uniqueId.trim() === currentUser.uniqueId.trim();
+                if (message.uniqueId.trim() === currentUser.uniqueId.trim()) {
+                    isOwnMessage = true;
+                    matchReason = '完整uniqueId匹配';
+                }
             }
-            // 方法2：备用方案 - 使用IP + 用户名组合比较
-            else if (message.userIp && message.userName &&
-                     currentUser.ip && currentUser.name) {
-                isOwnMessage = (message.userIp === currentUser.ip &&
-                               message.userName === currentUser.name);
+
+            // 方法2：IP + 浏览器指纹组合匹配（处理新格式uniqueId）
+            if (!isOwnMessage && message.userIp && currentUser.ip) {
+                // 从uniqueId中提取浏览器指纹进行比较
+                const messageFingerprint = extractBrowserFingerprint(message.uniqueId);
+                const currentUserFingerprint = extractBrowserFingerprint(currentUser.uniqueId);
+
+                if (message.userIp === currentUser.ip &&
+                    messageFingerprint && currentUserFingerprint &&
+                    messageFingerprint === currentUserFingerprint) {
+                    isOwnMessage = true;
+                    matchReason = 'IP+浏览器指纹匹配';
+                }
+            }
+
+            // 方法3：Session部分匹配（处理同IP多Session情况）
+            if (!isOwnMessage && message.uniqueId && currentUser.uniqueId) {
+                const messageSessionId = extractSessionId(message.uniqueId);
+                const currentUserSessionId = extractSessionId(currentUser.uniqueId);
+
+                if (messageSessionId && currentUserSessionId &&
+                    messageSessionId === currentUserSessionId) {
+                    isOwnMessage = true;
+                    matchReason = 'Session ID匹配';
+                }
+            }
+
+            // 方法4：用户名 + IP组合匹配（降级方案）
+            if (!isOwnMessage && message.userName && message.userIp &&
+                     currentUser.name && currentUser.ip) {
+                if (message.userName === currentUser.name &&
+                    message.userIp === currentUser.ip) {
+                    isOwnMessage = true;
+                    matchReason = '用户名+IP匹配';
+                }
+            }
+
+            // 方法5：仅用户名匹配（最后的降级方案）
+            if (!isOwnMessage && message.userName && currentUser.name) {
+                if (message.userName === currentUser.name) {
+                    isOwnMessage = true;
+                    matchReason = '仅用户名匹配';
+                }
             }
 
             // 调试信息 - 详细记录身份判断过程
@@ -857,17 +1034,23 @@
             console.log('消息发送者信息:', {
                 uniqueId: message.uniqueId,
                 userName: message.userName,
-                userIp: message.userIp
+                userIp: message.userIp,
+                fingerprint: extractBrowserFingerprint(message.uniqueId),
+                sessionId: extractSessionId(message.uniqueId)
             });
             console.log('当前用户信息:', {
                 uniqueId: currentUser.uniqueId,
                 name: currentUser.name,
-                ip: currentUser.ip
+                ip: currentUser.ip,
+                fingerprint: extractBrowserFingerprint(currentUser.uniqueId),
+                sessionId: extractSessionId(currentUser.uniqueId)
             });
             console.log('身份判断结果: isOwnMessage =', isOwnMessage);
-            console.log('判断依据:',
-                message.uniqueId && currentUser.uniqueId ? 'uniqueId比较' : 'IP+用户名比较');
+            console.log('匹配依据:', matchReason);
             console.log('========================');
+
+            // 更新调试面板
+            updateDebugLastMessage(message, isOwnMessage, matchReason);
 
             if (isOwnMessage) {
                 messageDiv.classList.add('own');
@@ -1265,6 +1448,9 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
 
         // 事件监听器
         document.addEventListener('DOMContentLoaded', function() {
+            // 创建调试面板
+            createDebugPanel();
+
             // 连接WebSocket
             connect();
 

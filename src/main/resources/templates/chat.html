@@ -659,7 +659,7 @@
                 <div style="font-size: 12px; color: #6c757d;" th:text="${userIp}">IP地址</div>
             </div>
 
-            <div class="online-count">
+            <div class="online-count" id="onlineCountArea" style="cursor: pointer;" title="双击打开调试面板">
                 在线用户: <span id="onlineCount">0</span>
             </div>
 
@@ -678,13 +678,8 @@
                     <li>可以撤回自己的消息</li>
                     <li>聊天记录永久保存</li>
                     <li>支持主题切换</li>
+                    <li>双击"在线用户"可打开调试面板</li>
                 </ul>
-
-                <div style="margin-top: 20px;">
-                    <button id="debugToggleBtn" class="load-more-btn" style="width: 100%;" onclick="toggleDebugPanel()">
-                        🔍 显示调试面板
-                    </button>
-                </div>
             </div>
         </div>
 
@@ -896,6 +891,17 @@
                 avatarElement.style.borderColor = userColor;
                 avatarElement.style.boxShadow = `0 0 8px ${userColor}40`;
             }
+        }
+
+        // HTML转义函数 - 防止XSS攻击并正确显示特殊字符
+        function escapeHtml(unsafe) {
+            if (!unsafe) return '';
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
         }
 
         // 从localStorage加载自定义用户名
@@ -1138,16 +1144,21 @@
             }
 
             const isRecalled = message.recalled;
+            
+            // 转义消息内容，防止HTML注入并正确显示特殊字符
+            const escapedContent = escapeHtml(message.content);
+            const escapedUserName = escapeHtml(message.userName);
+            const escapedFileName = message.fileName ? escapeHtml(message.fileName) : '';
 
             messageDiv.innerHTML = `
 <div class="message-avatar"></div>
 <div class="message-content">
-<div class="message-header">${message.userName} · ${message.timestamp}</div>
-<div class="message-text ${isRecalled ? 'recalled' : ''}">${message.content}</div>
+<div class="message-header">${escapedUserName} · ${message.timestamp}</div>
+<div class="message-text ${isRecalled ? 'recalled' : ''}">${escapedContent}</div>
 ${message.fileId && !isRecalled ? `
 <div class="file-message">
 <a href="/api/file/${message.fileId}" target="_blank">
-📄 ${message.fileName} (${formatFileSize(message.fileSize)})
+📄 ${escapedFileName} (${formatFileSize(message.fileSize)})
 </a>
 </div>
 ` : ''}
@@ -1233,16 +1244,21 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                             }
 
                             const isRecalled = message.recalled;
+                            
+                            // 转义消息内容，防止HTML注入并正确显示特殊字符
+                            const escapedContent = escapeHtml(message.content);
+                            const escapedUserName = escapeHtml(message.userName);
+                            const escapedFileName = message.fileName ? escapeHtml(message.fileName) : '';
 
                             messageDiv.innerHTML = `
 <div class="message-avatar"></div>
 <div class="message-content">
-<div class="message-header">${message.userName} · ${message.timestamp}</div>
-<div class="message-text ${isRecalled ? 'recalled' : ''}">${message.content}</div>
+<div class="message-header">${escapedUserName} · ${message.timestamp}</div>
+<div class="message-text ${isRecalled ? 'recalled' : ''}">${escapedContent}</div>
 ${message.fileId && !isRecalled ? `
 <div class="file-message">
 <a href="/api/file/${message.fileId}" target="_blank">
-📄 ${message.fileName} (${formatFileSize(message.fileSize)})
+📄 ${escapedFileName} (${formatFileSize(message.fileSize)})
 </a>
 </div>
 ` : ''}
@@ -1588,6 +1604,14 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
 
             // 主题切换按钮
             document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
+            // 双击在线用户数区域打开调试面板
+            const onlineCountArea = document.getElementById('onlineCountArea');
+            if (onlineCountArea) {
+                onlineCountArea.addEventListener('dblclick', function() {
+                    toggleDebugPanel();
+                });
+            }
 
             // 拖拽上传
             const messagesContainer = document.getElementById('messagesContainer');

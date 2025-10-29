@@ -24,6 +24,9 @@ public class ChatMessage {
     @Column(nullable = false, length = 100)
     private String userName;
 
+    @Column(name = "unique_id", nullable = false, length = 200)
+    private String uniqueId;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String content;
 
@@ -54,6 +57,17 @@ public class ChatMessage {
         this.messageType = messageType;
         this.timestamp = LocalDateTime.now();
         this.recalled = false;
+    }
+
+    public ChatMessage(String userIp, String uniqueId, String userName, String content, MessageType messageType, Long fileId) {
+        this.userIp = userIp;
+        this.uniqueId = uniqueId;
+        this.userName = userName;
+        this.content = content;
+        this.messageType = messageType;
+        this.timestamp = LocalDateTime.now();
+        this.recalled = false;
+        this.fileId = fileId;
     }
 
     public void recall() {

@@ -205,6 +205,8 @@
         .message-text {
             word-wrap: break-word;
             line-height: 1.4;
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
         }
 
         .message.recalled .message-text {
@@ -261,6 +263,25 @@
 
         .recall-btn:hover {
             background: #c82333;
+        }
+
+        .copy-btn {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .copy-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .copy-btn.copied {
+            background: var(--success);
+            color: white;
         }
 
         .chat-input-container {
@@ -642,9 +663,10 @@
                             </a>
                         </div>
                     ` : ''}
-                    ${isOwnMessage && !isRecalled ? `
+                    ${!isRecalled ? `
                         <div class="message-actions">
-                            <button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>
+                            <button class="copy-btn" onclick="copyMessage(${message.id}, this)">复制</button>
+                            ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>` : ''}
                         </div>
                     ` : ''}
                     <div class="message-time">${message.timestamp}</div>
@@ -734,9 +756,10 @@
                                             </a>
                                         </div>
                                     ` : ''}
-                                    ${isOwnMessage && !isRecalled ? `
+                                    ${!isRecalled ? `
                                         <div class="message-actions">
-                                            <button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>
+                                            <button class="copy-btn" onclick="copyMessage(${message.id}, this)">复制</button>
+                                            ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>` : ''}
                                         </div>
                                     ` : ''}
                                     <div class="message-time">${message.timestamp}</div>
@@ -857,6 +880,95 @@
                     }
                 }
             });
+        }
+
+        // 复制消息功能
+        function copyMessage(messageId, buttonElement) {
+            // 找到消息元素
+            const messageDiv = buttonElement.closest('.message');
+            if (!messageDiv) {
+                console.error('找不到消息元素');
+                return;
+            }
+
+            // 获取消息内容
+            const messageTextElement = messageDiv.querySelector('.message-text');
+            const messageHeaderElement = messageDiv.querySelector('.message-header');
+            const fileMessageElement = messageDiv.querySelector('.file-message');
+
+            if (!messageTextElement || !messageHeaderElement) {
+                console.error('找不到消息内容');
+                return;
+            }
+
+            // 构建复制内容
+            let copyContent = '';
+
+            // 添加消息头部信息（用户名和时间）
+            const headerText = messageHeaderElement.textContent;
+            copyContent += headerText + '\n\n';
+
+            // 添加消息正文
+            copyContent += messageTextElement.textContent;
+
+            // 如果有文件，添加文件信息
+            if (fileMessageElement) {
+                copyContent += '\n\n' + fileMessageElement.textContent.trim();
+            }
+
+            // 使用现代Clipboard API复制文本
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(copyContent).then(() => {
+                    // 复制成功，显示视觉反馈
+                    showCopySuccess(buttonElement);
+                }).catch(err => {
+                    console.error('复制失败:', err);
+                    // 降级到传统方法
+                    fallbackCopyText(copyContent, buttonElement);
+                });
+            } else {
+                // 降级到传统复制方法
+                fallbackCopyText(copyContent, buttonElement);
+            }
+        }
+
+        // 显示复制成功的视觉反馈
+        function showCopySuccess(buttonElement) {
+            const originalText = buttonElement.textContent;
+            buttonElement.textContent = '已复制';
+            buttonElement.classList.add('copied');
+
+            setTimeout(() => {
+                buttonElement.textContent = originalText;
+                buttonElement.classList.remove('copied');
+            }, 2000);
+        }
+
+        // 降级复制方法（兼容旧浏览器）
+        function fallbackCopyText(text, buttonElement) {
+            try {
+                // 创建临时文本区域
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+
+                textArea.focus();
+                textArea.select();
+
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+
+                if (successful) {
+                    showCopySuccess(buttonElement);
+                } else {
+                    console.error('降级复制方法失败');
+                }
+            } catch (err) {
+                console.error('降级复制方法出错:', err);
+            }
         }
 
         // 上传文件

@@ -80,12 +80,13 @@ public class WebSocketNativeController extends TextWebSocketHandler {
     @SuppressWarnings("unchecked")
     private void handleSendMessage(WebSocketSession session, Map<String, Object> payload) throws Exception {
         String userIp = (String) payload.get("userIp");
+        String uniqueId = (String) payload.get("uniqueId");
         String userName = (String) payload.get("userName");
         String content = (String) payload.get("content");
         String messageType = (String) payload.get("messageType");
         Long fileId = payload.get("fileId") != null ? Long.valueOf(payload.get("fileId").toString()) : null;
 
-        ChatMessage savedMessage = chatService.saveMessage(userIp, userName, content,
+        ChatMessage savedMessage = chatService.saveMessage(userIp, uniqueId, userName, content,
                 ChatMessage.MessageType.valueOf(messageType), fileId);
 
         ChatFile file = null;

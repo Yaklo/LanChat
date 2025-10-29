@@ -25,6 +25,12 @@ public class ChatService {
         return chatMessageRepository.save(message);
     }
 
+    public ChatMessage saveMessage(String userIp, String uniqueId, String userName, String content,
+                                 ChatMessage.MessageType messageType, Long fileId) {
+        ChatMessage message = new ChatMessage(userIp, uniqueId, userName, content, messageType, fileId);
+        return chatMessageRepository.save(message);
+    }
+
     public List<ChatMessage> getRecentMessages(int limit) {
         Pageable pageable = PageRequest.of(0, limit);
         return chatMessageRepository.findRecentMessages(pageable);

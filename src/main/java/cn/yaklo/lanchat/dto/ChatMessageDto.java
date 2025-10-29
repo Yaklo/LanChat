@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 public class ChatMessageDto {
     private Long id;
     private String userIp;
+    private String uniqueId;
     private String userName;
     private String content;
     private String timestamp;
@@ -27,6 +28,7 @@ public class ChatMessageDto {
         ChatMessageDto dto = new ChatMessageDto();
         dto.setId(message.getId());
         dto.setUserIp(message.getUserIp());
+        dto.setUniqueId(message.getUniqueId());
         dto.setUserName(message.getUserName());
         dto.setContent(message.getContent());
         dto.setTimestamp(message.getTimestamp().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));

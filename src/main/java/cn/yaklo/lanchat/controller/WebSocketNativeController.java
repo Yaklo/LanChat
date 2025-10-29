@@ -13,6 +13,7 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,12 +46,18 @@ public class WebSocketNativeController extends TextWebSocketHandler {
             ChatMessageDto messageDto = ChatMessageDto.fromEntity(message, file);
             sendMessage(session, messageDto);
         }
+
+        // 广播在线用户数更新
+        broadcastOnlineUserCount();
     }
 
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sessions.remove(session.getId());
         System.out.println("WebSocket连接关闭: " + session.getId());
+
+        // 广播在线用户数更新
+        broadcastOnlineUserCount();
     }
 
     @Override
@@ -133,5 +140,24 @@ public class WebSocketNativeController extends TextWebSocketHandler {
 
     public int getConnectedCount() {
         return sessions.size();
+    }
+
+    private void broadcastOnlineUserCount() throws Exception {
+        Map<String, Object> userCountMessage = new HashMap<>();
+        userCountMessage.put("type", "userCount");
+        userCountMessage.put("count", sessions.size());
+
+        String jsonMessage = objectMapper.writeValueAsString(userCountMessage);
+        TextMessage textMessage = new TextMessage(jsonMessage);
+
+        for (WebSocketSession session : sessions.values()) {
+            if (session.isOpen()) {
+                try {
+                    session.sendMessage(textMessage);
+                } catch (Exception e) {
+                    System.err.println("发送在线用户数失败: " + e.getMessage());
+                }
+            }
+        }
     }
 }

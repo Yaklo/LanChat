@@ -5,6 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>简单聊天室</title>
     <style>
+        /* CSS变量定义 - 暗色模式为默认 */
+        :root {
+            /* 背景色 */
+            --bg-primary: #1a1a1a;
+            --bg-secondary: #2d2d2d;
+            --bg-tertiary: #3a3a3a;
+            --bg-chat: #2d2d2d;
+            --bg-input: #404040;
+            --bg-hover: #4a4a4a;
+
+            /* 文字色 */
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --text-muted: #808080;
+            --text-link: #4a9eff;
+
+            /* 边框色 */
+            --border-primary: #404040;
+            --border-secondary: #555555;
+
+            /* 主题色 */
+            --primary: #007bff;
+            --primary-hover: #0056b3;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+
+            /* 阴影 */
+            --shadow-light: rgba(0, 0, 0, 0.2);
+            --shadow-medium: rgba(0, 0, 0, 0.3);
+            --shadow-heavy: rgba(0, 0, 0, 0.4);
+        }
+
+        /* 浅色模式变量（可选） */
+        [data-theme="light"] {
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e9ecef;
+            --bg-chat: #f8f9fa;
+            --bg-input: #ffffff;
+            --bg-hover: #f1f3f4;
+
+            --text-primary: #212529;
+            --text-secondary: #495057;
+            --text-muted: #6c757d;
+            --text-link: #007bff;
+
+            --border-primary: #dee2e6;
+            --border-secondary: #ced4da;
+
+            --shadow-light: rgba(0, 0, 0, 0.1);
+            --shadow-medium: rgba(0, 0, 0, 0.15);
+            --shadow-heavy: rgba(0, 0, 0, 0.2);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -13,7 +68,8 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--bg-primary);
+            color: var(--text-primary);
             height: 100vh;
             display: flex;
             justify-content: center;
@@ -24,44 +80,45 @@
             width: 90%;
             max-width: 1200px;
             height: 90vh;
-            background: white;
+            background: var(--bg-secondary);
             border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 20px 40px var(--shadow-medium);
             display: flex;
             overflow: hidden;
         }
 
         .chat-sidebar {
             width: 300px;
-            background: #f8f9fa;
-            border-right: 1px solid #e9ecef;
+            background: var(--bg-tertiary);
+            border-right: 1px solid var(--border-primary);
             padding: 20px;
             display: flex;
             flex-direction: column;
         }
 
         .user-info {
-            background: white;
+            background: var(--bg-secondary);
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 2px 10px var(--shadow-light);
+            border: 1px solid var(--border-primary);
         }
 
         .user-info h3 {
-            color: #495057;
+            color: var(--text-secondary);
             margin-bottom: 8px;
             font-size: 14px;
         }
 
         .user-name {
-            color: #007bff;
+            color: var(--text-link);
             font-weight: bold;
             font-size: 16px;
         }
 
         .online-count {
-            background: #28a745;
+            background: var(--success);
             color: white;
             padding: 10px;
             border-radius: 8px;
@@ -76,7 +133,7 @@
         }
 
         .chat-header {
-            background: #007bff;
+            background: var(--primary);
             color: white;
             padding: 20px;
             text-align: center;
@@ -88,7 +145,7 @@
             flex: 1;
             overflow-y: auto;
             padding: 20px;
-            background: #f8f9fa;
+            background: var(--bg-chat);
         }
 
         .message {
@@ -122,20 +179,21 @@
 
         .message-content {
             max-width: 60%;
-            background: white;
+            background: var(--bg-secondary);
             padding: 12px 16px;
             border-radius: 18px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 2px 5px var(--shadow-light);
+            border: 1px solid var(--border-primary);
         }
 
         .message.own .message-content {
-            background: #007bff;
+            background: var(--primary);
             color: white;
         }
 
         .message-header {
             font-size: 12px;
-            color: #6c757d;
+            color: var(--text-muted);
             margin-bottom: 5px;
         }
 
@@ -150,13 +208,13 @@
         }
 
         .message.recalled .message-text {
-            color: #6c757d;
+            color: var(--text-muted);
             font-style: italic;
         }
 
         .message-time {
             font-size: 11px;
-            color: #6c757d;
+            color: var(--text-muted);
             margin-top: 5px;
         }
 
@@ -165,15 +223,15 @@
         }
 
         .file-message {
-            background: #e3f2fd;
-            border: 1px solid #bbdefb;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-secondary);
             padding: 10px;
             border-radius: 8px;
             margin-top: 5px;
         }
 
         .file-message a {
-            color: #1976d2;
+            color: var(--text-link);
             text-decoration: none;
             display: flex;
             align-items: center;
@@ -192,7 +250,7 @@
         }
 
         .recall-btn {
-            background: #dc3545;
+            background: var(--danger);
             color: white;
             border: none;
             padding: 4px 8px;
@@ -206,9 +264,9 @@
         }
 
         .chat-input-container {
-            background: white;
+            background: var(--bg-secondary);
             padding: 20px;
-            border-top: 1px solid #e9ecef;
+            border-top: 1px solid var(--border-primary);
         }
 
         .input-wrapper {
@@ -229,9 +287,9 @@
         }
 
         .file-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
             padding: 12px 16px;
             border-radius: 25px;
             cursor: pointer;
@@ -240,27 +298,29 @@
         }
 
         .file-btn:hover {
-            background: #5a6268;
+            background: var(--bg-hover);
         }
 
         .message-input {
             flex: 1;
             padding: 12px 20px;
-            border: 2px solid #e9ecef;
+            border: 2px solid var(--border-primary);
             border-radius: 25px;
             outline: none;
             font-size: 16px;
             resize: none;
             min-height: 50px;
             max-height: 120px;
+            background: var(--bg-input);
+            color: var(--text-primary);
         }
 
         .message-input:focus {
-            border-color: #007bff;
+            border-color: var(--primary);
         }
 
         .send-btn {
-            background: #007bff;
+            background: var(--primary);
             color: white;
             border: none;
             padding: 12px 24px;
@@ -272,17 +332,17 @@
         }
 
         .send-btn:hover {
-            background: #0056b3;
+            background: var(--primary-hover);
         }
 
         .send-btn:disabled {
-            background: #6c757d;
+            background: var(--text-muted);
             cursor: not-allowed;
         }
 
         .typing-indicator {
             padding: 10px 20px;
-            color: #6c757d;
+            color: var(--text-muted);
             font-style: italic;
             font-size: 14px;
         }
@@ -294,9 +354,9 @@
         }
 
         .load-more-btn {
-            background: #6c757d;
-            color: white;
-            border: none;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-primary);
             padding: 8px 16px;
             border-radius: 20px;
             cursor: pointer;
@@ -304,7 +364,7 @@
         }
 
         .load-more-btn:hover {
-            background: #5a6268;
+            background: var(--bg-hover);
         }
 
         @keyframes fadeIn {
@@ -331,15 +391,15 @@
         }
 
         .connection-status.connected {
-            background: #28a745;
+            background: var(--success);
         }
 
         .connection-status.disconnected {
-            background: #dc3545;
+            background: var(--danger);
         }
 
         .connection-status.connecting {
-            background: #ffc107;
+            background: var(--warning);
             color: #212529;
         }
 
@@ -365,16 +425,16 @@
         }
 
         .messages-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
+            background: var(--bg-tertiary);
         }
 
         .messages-container::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
+            background: var(--border-secondary);
             border-radius: 3px;
         }
 
         .messages-container::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
+            background: var(--text-muted);
         }
     </style>
 </head>
@@ -390,16 +450,24 @@
             </div>
 
             <div class="online-count">
-                在线用户: <span id="onlineCount">1</span>
+                在线用户: <span id="onlineCount">0</span>
             </div>
 
             <div style="flex: 1; overflow-y: auto;">
-                <h4 style="margin-bottom: 10px; color: #495057;">使用说明</h4>
-                <ul style="font-size: 12px; color: #6c757d; padding-left: 20px;">
+                <div style="margin-bottom: 20px;">
+                    <h4 style="margin-bottom: 10px; color: var(--text-secondary);">主题设置</h4>
+                    <button id="themeToggle" class="load-more-btn" style="width: 100%; margin-bottom: 10px;">
+                        🌙 切换到浅色模式
+                    </button>
+                </div>
+
+                <h4 style="margin-bottom: 10px; color: var(--text-secondary);">使用说明</h4>
+                <ul style="font-size: 12px; color: var(--text-muted); padding-left: 20px;">
                     <li>支持发送文字消息</li>
                     <li>支持上传文件（最大10MB）</li>
                     <li>可以撤回自己的消息</li>
                     <li>聊天记录永久保存</li>
+                    <li>支持主题切换</li>
                 </ul>
             </div>
         </div>
@@ -443,7 +511,9 @@
         let stompClient = null;
         let currentUser = {
             ip: /*[[${userIp}]]*/ '127.0.0.1',
-            name: /*[[${userName}]]*/ '本机用户'
+            uniqueId: /*[[${uniqueUserId}]]*/ '127.0.0.1@abc12345',
+            name: /*[[${userName}]]*/ '本机用户',
+            displayName: /*[[${displayName}]]*/ '本机用户'
         };
         let oldestMessageTimestamp = null;
         let hasMoreMessages = true;
@@ -487,8 +557,15 @@
 
                 stompClient.onmessage = function(event) {
                     try {
-                        const chatMessage = JSON.parse(event.data);
-                        addMessageToUI(chatMessage);
+                        const data = JSON.parse(event.data);
+
+                        // 根据消息类型处理不同的数据
+                        if (data.type === 'userCount') {
+                            updateOnlineUserCount(data.count);
+                        } else {
+                            // 普通聊天消息
+                            addMessageToUI(data);
+                        }
                     } catch (e) {
                         console.error('解析消息失败:', e);
                     }
@@ -527,13 +604,25 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
+        // 更新在线用户数
+        function updateOnlineUserCount(count) {
+            const onlineCountElement = document.getElementById('onlineCount');
+            if (onlineCountElement) {
+                onlineCountElement.textContent = count;
+            }
+        }
+
         // 添加消息到UI
         function addMessageToUI(message) {
             const messagesList = document.getElementById('messagesList');
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
 
-            if (message.userIp === currentUser.ip) {
+            // 使用更精确的用户身份判断：优先使用uniqueId，其次使用userIp
+            const isOwnMessage = (message.uniqueId && message.uniqueId === currentUser.uniqueId) ||
+                               (message.userIp === currentUser.ip && message.userName === currentUser.displayName);
+
+            if (isOwnMessage) {
                 messageDiv.classList.add('own');
             }
 
@@ -553,7 +642,7 @@
                             </a>
                         </div>
                     ` : ''}
-                    ${message.userIp === currentUser.ip && !isRecalled ? `
+                    ${isOwnMessage && !isRecalled ? `
                         <div class="message-actions">
                             <button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>
                         </div>
@@ -621,7 +710,11 @@
                             const messageDiv = document.createElement('div');
                             messageDiv.className = 'message';
 
-                            if (message.userIp === currentUser.ip) {
+                            // 使用更精确的用户身份判断
+                            const isOwnMessage = (message.uniqueId && message.uniqueId === currentUser.uniqueId) ||
+                                               (message.userIp === currentUser.ip && message.userName === currentUser.displayName);
+
+                            if (isOwnMessage) {
                                 messageDiv.classList.add('own');
                             }
 
@@ -641,7 +734,7 @@
                                             </a>
                                         </div>
                                     ` : ''}
-                                    ${message.userIp === currentUser.ip && !isRecalled ? `
+                                    ${isOwnMessage && !isRecalled ? `
                                         <div class="message-actions">
                                             <button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>
                                         </div>
@@ -683,7 +776,8 @@
             const message = {
                 type: 'sendMessage',
                 userIp: currentUser.ip,
-                userName: currentUser.name,
+                uniqueId: currentUser.uniqueId,
+                userName: currentUser.displayName,
                 content: content,
                 messageType: 'TEXT',
                 fileId: null
@@ -702,23 +796,67 @@
         // 撤回消息
         function recallMessage(messageId) {
             if (confirm('确定要撤回这条消息吗？')) {
-                fetch(`/api/recall/${messageId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'error') {
-                        alert(data.message);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error recalling message:', error);
-                    alert('撤回消息失败');
-                });
+                const message = {
+                    type: 'recallMessage',
+                    messageId: messageId,
+                    userIp: currentUser.ip
+                };
+
+                if (stompClient && stompClient.readyState === WebSocket.OPEN) {
+                    stompClient.send(JSON.stringify(message));
+                } else {
+                    console.error('WebSocket连接未建立，无法撤回消息');
+                    updateConnectionStatus('disconnected');
+
+                    // 降级到HTTP请求
+                    fetch(`/api/recall/${messageId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'error') {
+                            alert(data.message);
+                        } else {
+                            // 手动更新UI中的撤回状态
+                            updateMessageRecallStatus(messageId);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error recalling message:', error);
+                        alert('撤回消息失败');
+                    });
+                }
             }
+        }
+
+        // 更新消息撤回状态（用于HTTP撤回的UI更新）
+        function updateMessageRecallStatus(messageId) {
+            const messageElements = document.querySelectorAll('.message');
+            messageElements.forEach(element => {
+                const recallBtn = element.querySelector('.recall-btn');
+                if (recallBtn && recallBtn.getAttribute('onclick').includes(messageId)) {
+                    // 更新消息内容为撤回状态
+                    const messageText = element.querySelector('.message-text');
+                    const messageActions = element.querySelector('.message-actions');
+
+                    messageText.textContent = '[消息已被撤回]';
+                    messageText.classList.add('recalled');
+
+                    // 移除撤回按钮
+                    if (messageActions) {
+                        messageActions.remove();
+                    }
+
+                    // 移除文件显示（如果有）
+                    const fileMessage = element.querySelector('.file-message');
+                    if (fileMessage) {
+                        fileMessage.remove();
+                    }
+                }
+            });
         }
 
         // 上传文件
@@ -746,7 +884,8 @@
                     const message = {
                         type: 'sendMessage',
                         userIp: currentUser.ip,
-                        userName: currentUser.name,
+                        uniqueId: currentUser.uniqueId,
+                        userName: currentUser.displayName,
                         content: `分享了文件: ${data.fileName}`,
                         messageType: 'FILE',
                         fileId: data.fileId
@@ -815,28 +954,61 @@
             // 加载更多按钮
             document.getElementById('loadMoreBtn').addEventListener('click', loadMoreMessages);
 
+            // 主题切换按钮
+            document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+
             // 拖拽上传
             const messagesContainer = document.getElementById('messagesContainer');
             messagesContainer.addEventListener('dragover', function(e) {
                 e.preventDefault();
-                messagesContainer.style.backgroundColor = '#e3f2fd';
+                messagesContainer.style.backgroundColor = 'var(--bg-hover)';
             });
 
             messagesContainer.addEventListener('dragleave', function(e) {
                 e.preventDefault();
-                messagesContainer.style.backgroundColor = '#f8f9fa';
+                messagesContainer.style.backgroundColor = 'var(--bg-chat)';
             });
 
             messagesContainer.addEventListener('drop', function(e) {
                 e.preventDefault();
-                messagesContainer.style.backgroundColor = '#f8f9fa';
+                messagesContainer.style.backgroundColor = 'var(--bg-chat)';
 
                 const files = e.dataTransfer.files;
                 if (files.length > 0) {
                     uploadFile(files[0]);
                 }
             });
+
+            // 初始化主题
+            initTheme();
         });
+
+        // 主题管理功能
+        function initTheme() {
+            const savedTheme = localStorage.getItem('chatTheme') || 'dark';
+            setTheme(savedTheme);
+        }
+
+        function setTheme(theme) {
+            const themeToggleBtn = document.getElementById('themeToggle');
+            const html = document.documentElement;
+
+            if (theme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                themeToggleBtn.textContent = '🌙 切换到暗色模式';
+            } else {
+                html.removeAttribute('data-theme');
+                themeToggleBtn.textContent = '☀️ 切换到浅色模式';
+            }
+
+            localStorage.setItem('chatTheme', theme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = localStorage.getItem('chatTheme') || 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        }
     </script>
 
   </body>

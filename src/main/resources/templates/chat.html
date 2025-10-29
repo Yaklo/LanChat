@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>简单聊天室</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 1200px;
+            height: 90vh;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            overflow: hidden;
+        }
+
+        .chat-sidebar {
+            width: 300px;
+            background: #f8f9fa;
+            border-right: 1px solid #e9ecef;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-info {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .user-info h3 {
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .user-name {
+            color: #007bff;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .online-count {
+            background: #28a745;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            background: #007bff;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .message.own {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #007bff;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 0 10px;
+        }
+
+        .message.own .message-avatar {
+            background: #28a745;
+        }
+
+        .message-content {
+            max-width: 60%;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.own .message-content {
+            background: #007bff;
+            color: white;
+        }
+
+        .message-header {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+        .message.own .message-header {
+            color: rgba(255, 255, 255, 0.8);
+            text-align: right;
+        }
+
+        .message-text {
+            word-wrap: break-word;
+            line-height: 1.4;
+        }
+
+        .message.recalled .message-text {
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .message-time {
+            font-size: 11px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        .message.own .message-time {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .file-message {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+
+        .file-message a {
+            color: #1976d2;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-message a:hover {
+            text-decoration: underline;
+        }
+
+        .message-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+            font-size: 12px;
+        }
+
+        .recall-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .recall-btn:hover {
+            background: #c82333;
+        }
+
+        .chat-input-container {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        .file-btn:hover {
+            background: #5a6268;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            outline: none;
+            font-size: 16px;
+            resize: none;
+            min-height: 50px;
+            max-height: 120px;
+        }
+
+        .message-input:focus {
+            border-color: #007bff;
+        }
+
+        .send-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .send-btn:hover {
+            background: #0056b3;
+        }
+
+        .send-btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .typing-indicator {
+            padding: 10px 20px;
+            color: #6c757d;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        .load-more {
+            text-align: center;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+
+        .load-more-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .load-more-btn:hover {
+            background: #5a6268;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .connection-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border-radius: 25px;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+        }
+
+        .connection-status.connected {
+            background: #28a745;
+        }
+
+        .connection-status.disconnected {
+            background: #dc3545;
+        }
+
+        .connection-status.connecting {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .chat-container {
+                width: 95%;
+                height: 95vh;
+            }
+
+            .chat-sidebar {
+                display: none;
+            }
+
+            .message-content {
+                max-width: 80%;
+            }
+        }
+
+        /* 滚动条样式 */
+        .messages-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .messages-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .messages-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">连接中...</div>
+
+    <div class="chat-container">
+        <div class="chat-sidebar">
+            <div class="user-info">
+                <h3>当前用户</h3>
+                <div class="user-name" th:text="${userName}">用户</div>
+                <div style="font-size: 12px; color: #6c757d; margin-top: 5px;" th:text="${userIp}">IP地址</div>
+            </div>
+
+            <div class="online-count">
+                在线用户: <span id="onlineCount">1</span>
+            </div>
+
+            <div style="flex: 1; overflow-y: auto;">
+                <h4 style="margin-bottom: 10px; color: #495057;">使用说明</h4>
+                <ul style="font-size: 12px; color: #6c757d; padding-left: 20px;">
+                    <li>支持发送文字消息</li>
+                    <li>支持上传文件（最大10MB）</li>
+                    <li>可以撤回自己的消息</li>
+                    <li>聊天记录永久保存</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="chat-main">
+            <div class="chat-header">
+                简单聊天室
+            </div>
+
+            <div class="messages-container" id="messagesContainer">
+                <div class="load-more">
+                    <button class="load-more-btn" id="loadMoreBtn">加载更多历史消息</button>
+                </div>
+                <div id="messagesList"></div>
+            </div>
+
+            <div class="typing-indicator" id="typingIndicator" style="display: none;">
+                有人正在输入...
+            </div>
+
+            <div class="chat-input-container">
+                <div class="input-wrapper">
+                    <div class="file-input-wrapper">
+                        <label for="fileInput" class="file-btn">📎</label>
+                        <input type="file" id="fileInput" />
+                    </div>
+                    <textarea
+                        class="message-input"
+                        id="messageInput"
+                        placeholder="输入消息..."
+                        rows="1"
+                    ></textarea>
+                    <button class="send-btn" id="sendBtn">发送</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let stompClient = null;
+        let currentUser = {
+            ip: /*[[${userIp}]]*/ '127.0.0.1',
+            name: /*[[${userName}]]*/ '本机用户'
+        };
+        let oldestMessageTimestamp = null;
+        let hasMoreMessages = true;
+        let fileUploadInProgress = false;
+
+        // 连接状态管理
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.className = `connection-status ${status}`;
+
+            switch(status) {
+                case 'connected':
+                    statusElement.textContent = '已连接';
+                    break;
+                case 'disconnected':
+                    statusElement.textContent = '连接断开';
+                    break;
+                case 'connecting':
+                    statusElement.textContent = '连接中...';
+                    break;
+            }
+        }
+
+        // WebSocket连接
+        function connect() {
+            updateConnectionStatus('connecting');
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+
+            try {
+                stompClient = new WebSocket(wsUrl);
+
+                stompClient.onopen = function(event) {
+                    updateConnectionStatus('connected');
+                    console.log('WebSocket连接已建立');
+
+                    // 连接成功后加载初始消息
+                    loadInitialMessages();
+                };
+
+                stompClient.onmessage = function(event) {
+                    try {
+                        const chatMessage = JSON.parse(event.data);
+                        addMessageToUI(chatMessage);
+                    } catch (e) {
+                        console.error('解析消息失败:', e);
+                    }
+                };
+
+                stompClient.onclose = function(event) {
+                    updateConnectionStatus('disconnected');
+                    console.log('WebSocket连接已关闭:', event.code, event.reason);
+
+                    // 5秒后尝试重连
+                    setTimeout(connect, 5000);
+                };
+
+                stompClient.onerror = function(error) {
+                    updateConnectionStatus('disconnected');
+                    console.error('WebSocket错误:', error);
+
+                    // 5秒后尝试重连
+                    setTimeout(connect, 5000);
+                };
+            } catch (e) {
+                updateConnectionStatus('disconnected');
+                console.error('创建WebSocket连接失败:', e);
+
+                // 5秒后尝试重连
+                setTimeout(connect, 5000);
+            }
+        }
+
+        // 格式化文件大小
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        // 添加消息到UI
+        function addMessageToUI(message) {
+            const messagesList = document.getElementById('messagesList');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+
+            if (message.userIp === currentUser.ip) {
+                messageDiv.classList.add('own');
+            }
+
+            const isRecalled = message.recalled;
+
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${message.userName.substring(0, 8)}</div>
+                <div class="message-content">
+                    <div class="message-header">${message.userName} · ${message.timestamp}</div>
+                    <div class="message-text ${isRecalled ? 'recalled' : ''}">
+                        ${message.content}
+                    </div>
+                    ${message.fileId && !isRecalled ? `
+                        <div class="file-message">
+                            <a href="/api/file/${message.fileId}" target="_blank">
+                                📄 ${message.fileName} (${formatFileSize(message.fileSize)})
+                            </a>
+                        </div>
+                    ` : ''}
+                    ${message.userIp === currentUser.ip && !isRecalled ? `
+                        <div class="message-actions">
+                            <button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>
+                        </div>
+                    ` : ''}
+                    <div class="message-time">${message.timestamp}</div>
+                </div>
+            `;
+
+            messagesList.appendChild(messageDiv);
+            scrollToBottom();
+
+            // 更新最旧消息时间戳
+            if (!oldestMessageTimestamp || message.timestamp < oldestMessageTimestamp) {
+                oldestMessageTimestamp = message.timestamp;
+            }
+        }
+
+        // 加载初始消息
+        function loadInitialMessages() {
+            fetch('/api/messages?size=30')
+                .then(response => response.json())
+                .then(data => {
+                    const messagesList = document.getElementById('messagesList');
+                    messagesList.innerHTML = '';
+
+                    if (data.messages && data.messages.length > 0) {
+                        // 反向添加消息（旧的在前面）
+                        data.messages.reverse().forEach(message => {
+                            addMessageToUI(message);
+                        });
+
+                        // 如果消息少于30条，隐藏"加载更多"按钮
+                        if (data.messages.length < 30) {
+                            hasMoreMessages = false;
+                            document.getElementById('loadMoreBtn').style.display = 'none';
+                        }
+                    } else {
+                        hasMoreMessages = false;
+                        document.getElementById('loadMoreBtn').style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading messages:', error);
+                });
+        }
+
+        // 加载更多历史消息
+        function loadMoreMessages() {
+            if (!hasMoreMessages || oldestMessageTimestamp === null) return;
+
+            const btn = document.getElementById('loadMoreBtn');
+            btn.textContent = '加载中...';
+            btn.disabled = true;
+
+            const beforeDate = oldestMessageTimestamp.split(' ')[0];
+            fetch(`/api/messages?before=${beforeDate}&size=30`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.messages && data.messages.length > 0) {
+                        const messagesList = document.getElementById('messagesList');
+                        const firstMessage = messagesList.firstChild;
+
+                        // 反向添加消息到列表前面
+                        data.messages.reverse().forEach(message => {
+                            const messageDiv = document.createElement('div');
+                            messageDiv.className = 'message';
+
+                            if (message.userIp === currentUser.ip) {
+                                messageDiv.classList.add('own');
+                            }
+
+                            const isRecalled = message.recalled;
+
+                            messageDiv.innerHTML = `
+                                <div class="message-avatar">${message.userName.substring(0, 8)}</div>
+                                <div class="message-content">
+                                    <div class="message-header">${message.userName} · ${message.timestamp}</div>
+                                    <div class="message-text ${isRecalled ? 'recalled' : ''}">
+                                        ${message.content}
+                                    </div>
+                                    ${message.fileId && !isRecalled ? `
+                                        <div class="file-message">
+                                            <a href="/api/file/${message.fileId}" target="_blank">
+                                                📄 ${message.fileName} (${formatFileSize(message.fileSize)})
+                                            </a>
+                                        </div>
+                                    ` : ''}
+                                    ${message.userIp === currentUser.ip && !isRecalled ? `
+                                        <div class="message-actions">
+                                            <button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>
+                                        </div>
+                                    ` : ''}
+                                    <div class="message-time">${message.timestamp}</div>
+                                </div>
+                            `;
+
+                            messagesList.insertBefore(messageDiv, firstMessage);
+                        });
+
+                        // 如果加载的消息少于30条，说明没有更多历史消息了
+                        if (data.messages.length < 30) {
+                            hasMoreMessages = false;
+                            btn.style.display = 'none';
+                        } else {
+                            btn.textContent = '加载更多历史消息';
+                            btn.disabled = false;
+                        }
+                    } else {
+                        hasMoreMessages = false;
+                        btn.style.display = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading more messages:', error);
+                    btn.textContent = '加载更多历史消息';
+                    btn.disabled = false;
+                });
+        }
+
+        // 发送消息
+        function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const content = messageInput.value.trim();
+
+            if (content === '' || fileUploadInProgress) return;
+
+            const message = {
+                type: 'sendMessage',
+                userIp: currentUser.ip,
+                userName: currentUser.name,
+                content: content,
+                messageType: 'TEXT',
+                fileId: null
+            };
+
+            if (stompClient && stompClient.readyState === WebSocket.OPEN) {
+                stompClient.send(JSON.stringify(message));
+            } else {
+                console.error('WebSocket连接未建立');
+                updateConnectionStatus('disconnected');
+            }
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+        }
+
+        // 撤回消息
+        function recallMessage(messageId) {
+            if (confirm('确定要撤回这条消息吗？')) {
+                fetch(`/api/recall/${messageId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'error') {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error recalling message:', error);
+                    alert('撤回消息失败');
+                });
+            }
+        }
+
+        // 上传文件
+        function uploadFile(file) {
+            if (file.size > 10 * 1024 * 1024) {
+                alert('文件大小不能超过10MB');
+                return;
+            }
+
+            fileUploadInProgress = true;
+            document.getElementById('sendBtn').disabled = true;
+            document.getElementById('sendBtn').textContent = '上传中...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // 发送文件消息
+                    const message = {
+                        type: 'sendMessage',
+                        userIp: currentUser.ip,
+                        userName: currentUser.name,
+                        content: `分享了文件: ${data.fileName}`,
+                        messageType: 'FILE',
+                        fileId: data.fileId
+                    };
+
+                    if (stompClient && stompClient.readyState === WebSocket.OPEN) {
+                        stompClient.send(JSON.stringify(message));
+                    }
+                } else {
+                    alert('文件上传失败: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error uploading file:', error);
+                alert('文件上传失败');
+            })
+            .finally(() => {
+                fileUploadInProgress = false;
+                document.getElementById('sendBtn').disabled = false;
+                document.getElementById('sendBtn').textContent = '发送';
+            });
+        }
+
+        // 滚动到底部
+        function scrollToBottom() {
+            const container = document.getElementById('messagesContainer');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // 自动调整输入框高度
+        function autoResizeTextarea() {
+            const textarea = document.getElementById('messageInput');
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        // 事件监听器
+        document.addEventListener('DOMContentLoaded', function() {
+            // 连接WebSocket
+            connect();
+
+            // 发送按钮
+            document.getElementById('sendBtn').addEventListener('click', sendMessage);
+
+            // 消息输入框
+            const messageInput = document.getElementById('messageInput');
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+
+            messageInput.addEventListener('input', autoResizeTextarea);
+
+            // 文件选择
+            document.getElementById('fileInput').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    uploadFile(file);
+                }
+                // 清空文件选择
+                e.target.value = '';
+            });
+
+            // 加载更多按钮
+            document.getElementById('loadMoreBtn').addEventListener('click', loadMoreMessages);
+
+            // 拖拽上传
+            const messagesContainer = document.getElementById('messagesContainer');
+            messagesContainer.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                messagesContainer.style.backgroundColor = '#e3f2fd';
+            });
+
+            messagesContainer.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                messagesContainer.style.backgroundColor = '#f8f9fa';
+            });
+
+            messagesContainer.addEventListener('drop', function(e) {
+                e.preventDefault();
+                messagesContainer.style.backgroundColor = '#f8f9fa';
+
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    uploadFile(files[0]);
+                }
+            });
+        });
+    </script>
+
+  </body>
+</html>

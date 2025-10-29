@@ -1293,12 +1293,23 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                 });
         }
 
+        // 最大消息内容大小（字节）- 10MB
+        const MAX_MESSAGE_SIZE = 10 * 1024 * 1024;
+
         // 发送消息
         function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const content = messageInput.value.trim();
 
             if (content === '' || fileUploadInProgress) return;
+
+            // 检查消息大小
+            const messageSize = new Blob([content]).size;
+            if (messageSize > MAX_MESSAGE_SIZE) {
+                const maxSizeMB = MAX_MESSAGE_SIZE / (1024 * 1024);
+                alert(`消息内容过大，请限制在${maxSizeMB}MB以内。当前大小：${(messageSize / (1024 * 1024)).toFixed(2)}MB`);
+                return;
+            }
 
             const message = {
                 type: 'sendMessage',

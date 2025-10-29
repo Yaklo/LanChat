@@ -205,7 +205,7 @@
         .message-text {
             word-wrap: break-word;
             line-height: 1.4;
-            white-space: pre-wrap;
+            white-space: pre-line;
             overflow-wrap: break-word;
         }
 
@@ -246,42 +246,65 @@
 
         .message-actions {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             margin-top: 8px;
             font-size: 12px;
         }
 
         .recall-btn {
-            background: var(--danger);
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
             color: white;
             border: none;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 6px 12px;
+            border-radius: 16px;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 12px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(220, 53, 69, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .recall-btn:hover {
-            background: #c82333;
+            background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(220, 53, 69, 0.4);
+        }
+
+        .recall-btn:active {
+            transform: translateY(0);
         }
 
         .copy-btn {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border-primary);
-            padding: 4px 8px;
-            border-radius: 4px;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 16px;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 12px;
+            transition: all 0.3s;
+            box-shadow: 0 2px 4px rgba(108, 117, 125, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 4px;
         }
 
         .copy-btn:hover {
-            background: var(--bg-hover);
+            background: linear-gradient(135deg, #5a6268 0%, #545b62 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(108, 117, 125, 0.4);
+        }
+
+        .copy-btn:active {
+            transform: translateY(0);
         }
 
         .copy-btn.copied {
-            background: var(--success);
+            background: linear-gradient(135deg, #28a745 0%, #218838 100%);
             color: white;
+            box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
         }
 
         .chat-input-container {
@@ -426,18 +449,166 @@
 
         /* 响应式设计 */
         @media (max-width: 768px) {
+            body {
+                padding: 0;
+            }
+
             .chat-container {
-                width: 95%;
-                height: 95vh;
+                width: 100%;
+                height: 100vh;
+                max-width: 100%;
+                border-radius: 0;
             }
 
             .chat-sidebar {
-                display: none;
+                position: fixed;
+                left: -100%;
+                top: 0;
+                height: 100%;
+                width: 280px;
+                z-index: 1000;
+                transition: left 0.3s ease;
+                box-shadow: 2px 0 10px var(--shadow-medium);
+            }
+
+            .chat-sidebar.show {
+                left: 0;
+            }
+
+            .chat-header {
+                padding: 15px;
+                font-size: 18px;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+            }
+
+            .menu-toggle {
+                display: block !important;
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                padding: 5px;
+            }
+
+            .messages-container {
+                padding: 15px 10px;
             }
 
             .message-content {
-                max-width: 80%;
+                max-width: 85%;
+                font-size: 14px;
             }
+
+            .message-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 10px;
+                margin: 0 6px;
+            }
+
+            .chat-input-container {
+                padding: 10px;
+            }
+
+            .input-wrapper {
+                gap: 6px;
+            }
+
+            .message-input {
+                padding: 10px 15px;
+                font-size: 14px;
+                min-height: 40px;
+            }
+
+            .send-btn {
+                padding: 10px 18px;
+                font-size: 14px;
+            }
+
+            .file-btn {
+                padding: 10px 12px;
+                font-size: 14px;
+            }
+
+            .message-actions {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .copy-btn, .recall-btn {
+                font-size: 11px;
+                padding: 5px 10px;
+            }
+
+            .connection-status {
+                top: 10px;
+                right: 10px;
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+
+            /* 侧边栏遮罩层 */
+            .sidebar-overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+            }
+
+            .sidebar-overlay.show {
+                display: block;
+            }
+        }
+
+        /* 更小的手机屏幕 */
+        @media (max-width: 480px) {
+            .chat-header {
+                font-size: 16px;
+                padding: 12px;
+            }
+
+            .message-content {
+                max-width: 90%;
+                padding: 10px 12px;
+                font-size: 13px;
+            }
+
+            .message-header {
+                font-size: 11px;
+            }
+
+            .message-time {
+                font-size: 10px;
+            }
+
+            .input-wrapper {
+                flex-wrap: wrap;
+            }
+
+            .message-input {
+                width: 100%;
+                margin-bottom: 8px;
+            }
+
+            .file-input-wrapper {
+                flex: 1;
+            }
+
+            .send-btn {
+                flex: 2;
+            }
+        }
+
+        /* 桌面端隐藏菜单按钮 */
+        .menu-toggle {
+            display: none;
         }
 
         /* 滚动条样式 */
@@ -461,6 +632,7 @@
 </head>
 <body>
     <div class="connection-status" id="connectionStatus">连接中...</div>
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
     <div class="chat-container">
         <div class="chat-sidebar">
@@ -495,7 +667,9 @@
 
         <div class="chat-main">
             <div class="chat-header">
-                简单聊天室
+                <button class="menu-toggle" id="menuToggle">☰</button>
+                <span>简单聊天室</span>
+                <span style="width: 30px;"></span>
             </div>
 
             <div class="messages-container" id="messagesContainer">
@@ -639,9 +813,15 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
 
-            // 使用更精确的用户身份判断：优先使用uniqueId，其次使用userIp
-            const isOwnMessage = (message.uniqueId && message.uniqueId === currentUser.uniqueId) ||
-                               (message.userIp === currentUser.ip && message.userName === currentUser.displayName);
+            // 使用更精确的用户身份判断：优先使用uniqueId，如果没有uniqueId则不匹配
+            const isOwnMessage = message.uniqueId && currentUser.uniqueId && 
+                               (message.uniqueId === currentUser.uniqueId);
+            
+            console.log('Message check:', {
+                messageUniqueId: message.uniqueId,
+                currentUserUniqueId: currentUser.uniqueId,
+                isOwn: isOwnMessage
+            });
 
             if (isOwnMessage) {
                 messageDiv.classList.add('own');
@@ -650,28 +830,26 @@
             const isRecalled = message.recalled;
 
             messageDiv.innerHTML = `
-                <div class="message-avatar">${message.userName.substring(0, 8)}</div>
-                <div class="message-content">
-                    <div class="message-header">${message.userName} · ${message.timestamp}</div>
-                    <div class="message-text ${isRecalled ? 'recalled' : ''}">
-                        ${message.content}
-                    </div>
-                    ${message.fileId && !isRecalled ? `
-                        <div class="file-message">
-                            <a href="/api/file/${message.fileId}" target="_blank">
-                                📄 ${message.fileName} (${formatFileSize(message.fileSize)})
-                            </a>
-                        </div>
-                    ` : ''}
-                    ${!isRecalled ? `
-                        <div class="message-actions">
-                            <button class="copy-btn" onclick="copyMessage(${message.id}, this)">复制</button>
-                            ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>` : ''}
-                        </div>
-                    ` : ''}
-                    <div class="message-time">${message.timestamp}</div>
-                </div>
-            `;
+<div class="message-avatar">${message.userName.substring(0, 8)}</div>
+<div class="message-content">
+<div class="message-header">${message.userName} · ${message.timestamp}</div>
+<div class="message-text ${isRecalled ? 'recalled' : ''}">${message.content}</div>
+${message.fileId && !isRecalled ? `
+<div class="file-message">
+<a href="/api/file/${message.fileId}" target="_blank">
+📄 ${message.fileName} (${formatFileSize(message.fileSize)})
+</a>
+</div>
+` : ''}
+${!isRecalled ? `
+<div class="message-actions">
+<button class="copy-btn" onclick="copyMessage(${message.id}, this)">📋 复制</button>
+${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id})">↩️ 撤回</button>` : ''}
+</div>
+` : ''}
+<div class="message-time">${message.timestamp}</div>
+</div>
+`.trim();
 
             messagesList.appendChild(messageDiv);
             scrollToBottom();
@@ -733,8 +911,8 @@
                             messageDiv.className = 'message';
 
                             // 使用更精确的用户身份判断
-                            const isOwnMessage = (message.uniqueId && message.uniqueId === currentUser.uniqueId) ||
-                                               (message.userIp === currentUser.ip && message.userName === currentUser.displayName);
+                            const isOwnMessage = message.uniqueId && currentUser.uniqueId && 
+                                               (message.uniqueId === currentUser.uniqueId);
 
                             if (isOwnMessage) {
                                 messageDiv.classList.add('own');
@@ -743,28 +921,26 @@
                             const isRecalled = message.recalled;
 
                             messageDiv.innerHTML = `
-                                <div class="message-avatar">${message.userName.substring(0, 8)}</div>
-                                <div class="message-content">
-                                    <div class="message-header">${message.userName} · ${message.timestamp}</div>
-                                    <div class="message-text ${isRecalled ? 'recalled' : ''}">
-                                        ${message.content}
-                                    </div>
-                                    ${message.fileId && !isRecalled ? `
-                                        <div class="file-message">
-                                            <a href="/api/file/${message.fileId}" target="_blank">
-                                                📄 ${message.fileName} (${formatFileSize(message.fileSize)})
-                                            </a>
-                                        </div>
-                                    ` : ''}
-                                    ${!isRecalled ? `
-                                        <div class="message-actions">
-                                            <button class="copy-btn" onclick="copyMessage(${message.id}, this)">复制</button>
-                                            ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id})">撤回</button>` : ''}
-                                        </div>
-                                    ` : ''}
-                                    <div class="message-time">${message.timestamp}</div>
-                                </div>
-                            `;
+<div class="message-avatar">${message.userName.substring(0, 8)}</div>
+<div class="message-content">
+<div class="message-header">${message.userName} · ${message.timestamp}</div>
+<div class="message-text ${isRecalled ? 'recalled' : ''}">${message.content}</div>
+${message.fileId && !isRecalled ? `
+<div class="file-message">
+<a href="/api/file/${message.fileId}" target="_blank">
+📄 ${message.fileName} (${formatFileSize(message.fileSize)})
+</a>
+</div>
+` : ''}
+${!isRecalled ? `
+<div class="message-actions">
+<button class="copy-btn" onclick="copyMessage(${message.id}, this)">📋 复制</button>
+${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id})">↩️ 撤回</button>` : ''}
+</div>
+` : ''}
+<div class="message-time">${message.timestamp}</div>
+</div>
+`.trim();
 
                             messagesList.insertBefore(messageDiv, firstMessage);
                         });
@@ -935,7 +1111,7 @@
         // 显示复制成功的视觉反馈
         function showCopySuccess(buttonElement) {
             const originalText = buttonElement.textContent;
-            buttonElement.textContent = '已复制';
+            buttonElement.textContent = '✓ 已复制';
             buttonElement.classList.add('copied');
 
             setTimeout(() => {
@@ -1038,6 +1214,23 @@
         document.addEventListener('DOMContentLoaded', function() {
             // 连接WebSocket
             connect();
+
+            // 菜单切换按钮（移动端）
+            const menuToggle = document.getElementById('menuToggle');
+            const sidebar = document.querySelector('.chat-sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            if (menuToggle) {
+                menuToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('show');
+                    sidebarOverlay.classList.toggle('show');
+                });
+
+                sidebarOverlay.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    sidebarOverlay.classList.remove('show');
+                });
+            }
 
             // 发送按钮
             document.getElementById('sendBtn').addEventListener('click', sendMessage);

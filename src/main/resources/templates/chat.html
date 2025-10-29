@@ -163,18 +163,25 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: #007bff;
-            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 12px;
-            font-weight: bold;
             margin: 0 10px;
+            /* 移除背景色和文字显示 */
+            background: transparent !important;
+            /* 使用边框来区分用户 */
+            border: 2px solid var(--border-secondary);
+            transition: all 0.3s ease;
         }
 
         .message.own .message-avatar {
-            background: #28a745;
+            border-color: var(--success);
+            box-shadow: 0 0 8px rgba(40, 167, 69, 0.3);
+        }
+
+        .message:not(.own) .message-avatar {
+            border-color: var(--primary);
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
         }
 
         .message-content {
@@ -505,8 +512,8 @@
             .message-avatar {
                 width: 32px;
                 height: 32px;
-                font-size: 10px;
                 margin: 0 6px;
+                border-width: 1.5px;
             }
 
             .chat-input-container {
@@ -638,8 +645,18 @@
         <div class="chat-sidebar">
             <div class="user-info">
                 <h3>当前用户</h3>
-                <div class="user-name" th:text="${userName}">用户</div>
-                <div style="font-size: 12px; color: #6c757d; margin-top: 5px;" th:text="${userIp}">IP地址</div>
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                    <div class="user-name" id="currentUserName" th:text="${userName}">无名氏</div>
+                    <button id="editUsernameBtn" style="background: none; border: none; color: var(--text-link); cursor: pointer; font-size: 14px; padding: 2px;">✏️</button>
+                </div>
+                <div id="usernameEditForm" style="display: none; margin-bottom: 5px;">
+                    <input type="text" id="usernameInput" maxlength="20" style="width: 150px; padding: 4px; border: 1px solid var(--border-primary); border-radius: 4px; background: var(--bg-input); color: var(--text-primary); font-size: 12px;">
+                    <div style="margin-top: 4px;">
+                        <button id="saveUsernameBtn" style="padding: 4px 8px; background: var(--primary); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">保存</button>
+                        <button id="cancelUsernameBtn" style="padding: 4px 8px; background: var(--text-muted); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 4px;">取消</button>
+                    </div>
+                </div>
+                <div style="font-size: 12px; color: #6c757d;" th:text="${userIp}">IP地址</div>
             </div>
 
             <div class="online-count">
@@ -751,7 +768,146 @@
             if (debugCurrentName) debugCurrentName.textContent = currentUser.name;
         }
 
-        
+        // 用户名编辑功能
+        function initUsernameEditor() {
+            const editBtn = document.getElementById('editUsernameBtn');
+            const editForm = document.getElementById('usernameEditForm');
+            const usernameInput = document.getElementById('usernameInput');
+            const saveBtn = document.getElementById('saveUsernameBtn');
+            const cancelBtn = document.getElementById('cancelUsernameBtn');
+            const currentUserName = document.getElementById('currentUserName');
+
+            if (!editBtn || !editForm || !usernameInput || !saveBtn || !cancelBtn || !currentUserName) {
+                console.error('用户名编辑器的元素未找到');
+                return;
+            }
+
+            editBtn.addEventListener('click', function() {
+                editForm.style.display = 'block';
+                editBtn.style.display = 'none';
+                usernameInput.value = currentUser.name;
+                usernameInput.focus();
+                usernameInput.select();
+            });
+
+            saveBtn.addEventListener('click', saveUsername);
+            cancelBtn.addEventListener('click', cancelEdit);
+
+            usernameInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveUsername();
+                } else if (e.key === 'Escape') {
+                    cancelEdit();
+                }
+            });
+        }
+
+        function saveUsername() {
+            const usernameInput = document.getElementById('usernameInput');
+            const newUsername = usernameInput.value.trim();
+
+            if (!newUsername) {
+                alert('用户名不能为空');
+                usernameInput.focus();
+                return;
+            }
+
+            if (newUsername.length > 20) {
+                alert('用户名不能超过20个字符');
+                usernameInput.focus();
+                return;
+            }
+
+            if (newUsername.includes(' ')) {
+                alert('用户名不能包含空格');
+                usernameInput.focus();
+                return;
+            }
+
+            // 发送到后端
+            fetch('/api/update-username', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userName: newUsername })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 更新本地用户名
+                    currentUser.name = data.userName;
+                    document.getElementById('currentUserName').textContent = data.userName;
+
+                    // 保存到localStorage
+                    localStorage.setItem('customUsername', data.userName);
+
+                    cancelEdit();
+                    updateDebugPanel();
+
+                    // 通过WebSocket发送用户名更新
+                    if (stompClient && stompClient.readyState === WebSocket.OPEN) {
+                        stompClient.send(JSON.stringify({
+                            type: 'updateUsername',
+                            userName: data.userName
+                        }));
+                    }
+
+                    console.log('用户名更新成功:', data.userName);
+                } else {
+                    alert(data.message || '更新用户名失败');
+                }
+            })
+            .catch(error => {
+                console.error('更新用户名失败:', error);
+                alert('更新用户名失败，请重试');
+            });
+        }
+
+        function cancelEdit() {
+            const editForm = document.getElementById('usernameEditForm');
+            const editBtn = document.getElementById('editUsernameBtn');
+
+            editForm.style.display = 'none';
+            editBtn.style.display = 'block';
+        }
+
+        // 基于IP哈希的颜色生成算法
+        function generateUserColor(userIp) {
+            const colors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+                '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2',
+                '#F8B739', '#52B788', '#E76F51', '#8E7CC3', '#F7CAC9'
+            ];
+
+            let hash = 0;
+            for (let i = 0; i < userIp.length; i++) {
+                hash = userIp.charCodeAt(i) + ((hash << 5) - hash);
+            }
+
+            return colors[Math.abs(hash) % colors.length];
+        }
+
+        // 应用颜色头像
+        function applyColorAvatar(messageElement, userIp, isOwn) {
+            const avatarElement = messageElement.querySelector('.message-avatar');
+            if (avatarElement && !isOwn) {
+                const userColor = generateUserColor(userIp);
+                avatarElement.style.borderColor = userColor;
+                avatarElement.style.boxShadow = `0 0 8px ${userColor}40`;
+            }
+        }
+
+        // 从localStorage加载自定义用户名
+        function loadCustomUsername() {
+            const customUsername = localStorage.getItem('customUsername');
+            if (customUsername && customUsername.trim()) {
+                currentUser.name = customUsername;
+                document.getElementById('currentUserName').textContent = customUsername;
+            }
+        }
+
+
         // 连接状态管理
         function updateConnectionStatus(status) {
             const statusElement = document.getElementById('connectionStatus');
@@ -876,6 +1032,11 @@
                             updateOnlineUserCount(data.count);
                         } else if (data.type === 'userInfoUpdate') {
                             updateCurrentUser(data);
+                        } else if (data.type === 'usernameUpdateSuccess') {
+                            console.log('用户名更新成功:', data.userName);
+                        } else if (data.type === 'usernameUpdateError') {
+                            console.error('用户名更新失败:', data.message);
+                            alert(data.message);
                         } else if (data.recalled) {
                             // 处理撤回消息的实时更新
                             updateMessageRecallStatus(data.id);
@@ -959,7 +1120,7 @@
             const isRecalled = message.recalled;
 
             messageDiv.innerHTML = `
-<div class="message-avatar">${message.userName.substring(0, 8)}</div>
+<div class="message-avatar"></div>
 <div class="message-content">
 <div class="message-header">${message.userName} · ${message.timestamp}</div>
 <div class="message-text ${isRecalled ? 'recalled' : ''}">${message.content}</div>
@@ -981,6 +1142,10 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
 `.trim();
 
             messagesList.appendChild(messageDiv);
+
+            // 应用颜色头像
+            applyColorAvatar(messageDiv, message.userIp, isOwnMessage);
+
             scrollToBottom();
 
             // 更新最旧消息时间戳
@@ -1050,7 +1215,7 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                             const isRecalled = message.recalled;
 
                             messageDiv.innerHTML = `
-<div class="message-avatar">${message.userName.substring(0, 8)}</div>
+<div class="message-avatar"></div>
 <div class="message-content">
 <div class="message-header">${message.userName} · ${message.timestamp}</div>
 <div class="message-text ${isRecalled ? 'recalled' : ''}">${message.content}</div>
@@ -1347,6 +1512,12 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
         document.addEventListener('DOMContentLoaded', function() {
             // 创建调试面板
             createDebugPanel();
+
+            // 加载自定义用户名
+            loadCustomUsername();
+
+            // 初始化用户名编辑器
+            initUsernameEditor();
 
             // 连接WebSocket
             connect();

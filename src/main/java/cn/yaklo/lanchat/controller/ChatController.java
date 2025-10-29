@@ -94,4 +94,32 @@ public class ChatController {
 
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping("/api/update-username")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateUsername(
+            @RequestBody Map<String, String> request,
+            HttpServletRequest httpRequest) {
+
+        String userIp = userService.getClientIp(httpRequest);
+        String newUserName = request.get("userName");
+
+        // 验证用户名格式
+        if (newUserName == null || newUserName.trim().isEmpty() ||
+            newUserName.length() > 20 || newUserName.contains(" ")) {
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("status", "error");
+            errorResponse.put("message", "用户名不能为空，不能超过20个字符，且不能包含空格");
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+
+        // 更新session中的用户名（仅当前会话有效）
+        httpRequest.getSession().setAttribute("customUserName", newUserName);
+
+        Map<String, Object> successResponse = new HashMap<>();
+        successResponse.put("status", "success");
+        successResponse.put("userName", newUserName);
+
+        return ResponseEntity.ok(successResponse);
+    }
 }

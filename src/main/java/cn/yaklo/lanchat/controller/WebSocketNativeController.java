@@ -79,6 +79,8 @@ public class WebSocketNativeController extends TextWebSocketHandler {
                 handleSendMessage(session, payload);
             } else if ("recallMessage".equals(type)) {
                 handleRecallMessage(session, payload);
+            } else if ("updateUsername".equals(type)) {
+                handleUsernameUpdate(session, payload);
             }
         } catch (Exception e) {
             System.err.println("处理WebSocket消息错误: " + e.getMessage());
@@ -154,10 +156,11 @@ public class WebSocketNativeController extends TextWebSocketHandler {
             String realIp = (String) attributes.get("clientIp");
 
             if (realIp != null && !realIp.isEmpty() && !"unknown".equals(realIp)) {
-                // 完全依赖握手获取的IP，不再使用URL参数
-                String userName = "用户(" + realIp + ")";  // 默认用户名格式
+                // 检查是否有自定义用户名（从HTTP session传递过来的）
+                String customUserName = (String) session.getAttributes().get("customUserName");
+                String userName = customUserName != null ? customUserName : "无名氏";
 
-                // 将简化的信息存储到session属性中
+                // 将信息存储到session属性中
                 session.getAttributes().put("clientIp", realIp);
                 session.getAttributes().put("clientName", userName);
 
@@ -168,7 +171,7 @@ public class WebSocketNativeController extends TextWebSocketHandler {
 
             // 降级处理：使用默认值
             String fallbackIp = "127.0.0.1";
-            String fallbackName = "未知用户";
+            String fallbackName = "无名氏";
             String fallbackInfo = fallbackIp + "|" + fallbackName;
 
             session.getAttributes().put("clientIp", fallbackIp);
@@ -253,6 +256,39 @@ public class WebSocketNativeController extends TextWebSocketHandler {
                     System.err.println("发送在线用户数失败: " + e.getMessage());
                 }
             }
+        }
+    }
+
+    /**
+     * 处理用户名更新
+     */
+    private void handleUsernameUpdate(WebSocketSession session, Map<String, Object> payload) throws Exception {
+        String newUserName = (String) payload.get("userName");
+
+        // 验证用户名
+        if (newUserName != null && !newUserName.trim().isEmpty() &&
+            newUserName.length() <= 20 && !newUserName.contains(" ")) {
+
+            // 更新session中的用户名
+            session.getAttributes().put("clientName", newUserName);
+
+            // 向客户端确认更新
+            Map<String, Object> response = new HashMap<>();
+            response.put("type", "usernameUpdateSuccess");
+            response.put("userName", newUserName);
+
+            String jsonResponse = objectMapper.writeValueAsString(response);
+            session.sendMessage(new TextMessage(jsonResponse));
+
+            System.out.println("用户名更新成功: " + newUserName);
+        } else {
+            // 发送错误响应
+            Map<String, Object> errorResponse = new HashMap<>();
+            errorResponse.put("type", "usernameUpdateError");
+            errorResponse.put("message", "用户名不能为空，不能超过20个字符，且不能包含空格");
+
+            String jsonErrorResponse = objectMapper.writeValueAsString(errorResponse);
+            session.sendMessage(new TextMessage(jsonErrorResponse));
         }
     }
 }

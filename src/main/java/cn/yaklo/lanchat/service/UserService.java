@@ -18,10 +18,7 @@ public class UserService {
     }
 
     public String formatUserName(String ip) {
-        // 如果IP是本地地址，显示为"本机用户"
-        if ("127.0.0.1".equals(ip) || "localhost".equals(ip) || ip == null) {
-            return "本机用户";
-        }
-        return ip;
+        // 统一返回"无名氏"作为默认用户名
+        return "无名氏";
     }
 }

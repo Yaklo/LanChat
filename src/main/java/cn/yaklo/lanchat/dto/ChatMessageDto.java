@@ -1,5 +1,7 @@
 package cn.yaklo.lanchat.dto;
 
+import cn.yaklo.lanchat.entity.ChatFile;
+import cn.yaklo.lanchat.entity.ChatMessage;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
@@ -30,8 +32,8 @@ public class ChatMessageDto {
     private Boolean isSystemMessage;   // 是否为系统消息
     private String messageSource;      // 消息来源标识（WebSocket/HTTP）
 
-    public static ChatMessageDto fromEntity(cn.yaklo.lanchat.entity.ChatMessage message,
-                                          cn.yaklo.lanchat.entity.ChatFile file) {
+    public static ChatMessageDto fromEntity(ChatMessage message,
+                                          ChatFile file) {
         ChatMessageDto dto = new ChatMessageDto();
         dto.setId(message.getId());
         dto.setUserIp(message.getUserIp());

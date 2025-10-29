@@ -5,6 +5,7 @@ import cn.yaklo.lanchat.entity.ChatFile;
 import cn.yaklo.lanchat.entity.ChatMessage;
 import cn.yaklo.lanchat.service.ChatService;
 import cn.yaklo.lanchat.service.FileService;
+import cn.yaklo.lanchat.util.IpUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

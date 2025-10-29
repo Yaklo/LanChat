@@ -875,7 +875,7 @@
                         if (data.type === 'userCount') {
                             updateOnlineUserCount(data.count);
                         } else if (data.type === 'userInfoUpdate') {
-                            updateCurrentUser(data.payload);
+                            updateCurrentUser(data);
                         } else if (data.recalled) {
                             // 处理撤回消息的实时更新
                             updateMessageRecallStatus(data.id);

@@ -712,21 +712,44 @@
         let stompClient = null;
         let currentUser = {
             ip: /*[[${userIp}]]*/ '127.0.0.1',
-            uniqueId: /*[[${uniqueUserId}]]*/ '127.0.0.1@abc12345',
-            name: /*[[${userName}]]*/ '本机用户',
-            displayName: /*[[${displayName}]]*/ '本机用户'
+            name: /*[[${userName}]]*/ '本机用户'
         };
         let oldestMessageTimestamp = null;
         let hasMoreMessages = true;
         let fileUploadInProgress = false;
 
         // 打印当前用户信息用于调试
-        console.log('=== 当前用户信息 ===');
+        console.log('=== 初始用户信息 ===');
         console.log('IP:', currentUser.ip);
-        console.log('Unique ID:', currentUser.uniqueId);
         console.log('Name:', currentUser.name);
-        console.log('Display Name:', currentUser.displayName);
         console.log('==================');
+
+        // 更新当前用户信息（从后端同步）
+        function updateCurrentUser(userInfo) {
+            console.log('接收到用户信息更新:', userInfo);
+            currentUser.ip = userInfo.ip || currentUser.ip;
+            currentUser.name = userInfo.name || currentUser.name;
+
+            console.log('=== 更新后用户信息 ===');
+            console.log('IP:', currentUser.ip);
+            console.log('Name:', currentUser.name);
+            console.log('==================');
+
+            // 更新调试面板显示
+            updateDebugPanel();
+
+            // 加载初始消息
+            loadInitialMessages();
+        }
+
+        // 更新调试面板显示
+        function updateDebugPanel() {
+            const debugCurrentIp = document.getElementById('debugCurrentIp');
+            const debugCurrentName = document.getElementById('debugCurrentName');
+
+            if (debugCurrentIp) debugCurrentIp.textContent = currentUser.ip;
+            if (debugCurrentName) debugCurrentName.textContent = currentUser.name;
+        }
 
         
         // 连接状态管理
@@ -822,14 +845,13 @@
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
             // 添加客户端信息到WebSocket URL参数中
-            const clientInfo = encodeURIComponent(currentUser.ip + '|' + currentUser.uniqueId + '|' + currentUser.name);
+            const clientInfo = encodeURIComponent(currentUser.ip + '|' + currentUser.name);
             const wsUrl = `${protocol}//${window.location.host}/ws/chat?client=${clientInfo}`;
 
             console.log('=== WebSocket连接信息 ===');
             console.log('连接URL:', wsUrl);
             console.log('当前用户信息:', {
                 ip: currentUser.ip,
-                uniqueId: currentUser.uniqueId,
                 name: currentUser.name
             });
             console.log('========================');
@@ -841,8 +863,8 @@
                     updateConnectionStatus('connected');
                     console.log('WebSocket连接已建立');
 
-                    // 连接成功后加载初始消息
-                    loadInitialMessages();
+                    // 连接成功后等待接收用户信息更新
+                    console.log('等待接收用户信息更新...');
                 };
 
                 stompClient.onmessage = function(event) {
@@ -852,6 +874,8 @@
                         // 根据消息类型处理不同的数据
                         if (data.type === 'userCount') {
                             updateOnlineUserCount(data.count);
+                        } else if (data.type === 'userInfoUpdate') {
+                            updateCurrentUser(data.payload);
                         } else if (data.recalled) {
                             // 处理撤回消息的实时更新
                             updateMessageRecallStatus(data.id);
@@ -1016,9 +1040,8 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                             messageDiv.className = 'message';
                             messageDiv.setAttribute('data-message-id', message.id);
 
-                            // 使用更精确的用户身份判断
-                            const isOwnMessage = message.uniqueId && currentUser.uniqueId && 
-                                               (message.uniqueId === currentUser.uniqueId);
+                            // 使用IP地址进行用户身份判断
+                            const isOwnMessage = message.userIp === currentUser.ip;
 
                             if (isOwnMessage) {
                                 messageDiv.classList.add('own');
@@ -1081,8 +1104,7 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             const message = {
                 type: 'sendMessage',
                 userIp: currentUser.ip,
-                uniqueId: currentUser.uniqueId,
-                userName: currentUser.displayName,
+                userName: currentUser.name,
                 content: content,
                 messageType: 'TEXT',
                 fileId: null
@@ -1284,8 +1306,7 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                     const message = {
                         type: 'sendMessage',
                         userIp: currentUser.ip,
-                        uniqueId: currentUser.uniqueId,
-                        userName: currentUser.displayName,
+                        userName: currentUser.name,
                         content: `分享了文件: ${data.fileName}`,
                         messageType: 'FILE',
                         fileId: data.fileId

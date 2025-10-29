@@ -33,11 +33,6 @@ public class WebSocketNativeController extends TextWebSocketHandler {
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        System.out.println("\n=== WebSocket连接建立详细信息 ===");
-        System.out.println("Session ID: " + session.getId());
-        System.out.println("Session URI: " + session.getUri());
-        System.out.println("Remote Address: " + session.getRemoteAddress());
-
         // 从WebSocket连接的URI中提取客户端信息
         String clientInfo = extractClientInfo(session);
 
@@ -45,15 +40,8 @@ public class WebSocketNativeController extends TextWebSocketHandler {
         session.getAttributes().put("clientInfo", clientInfo);
         sessions.put(session.getId(), session);
 
-        // 显示最终的session属性
-        System.out.println("最终Session属性:");
-        System.out.println("  clientInfo: " + session.getAttributes().get("clientInfo"));
-        System.out.println("  clientIp: " + session.getAttributes().get("clientIp"));
-        System.out.println("  clientUniqueId: " + session.getAttributes().get("clientUniqueId"));
-        System.out.println("  clientName: " + session.getAttributes().get("clientName"));
-
-        System.out.println("✓ WebSocket连接建立成功: " + clientInfo + ", Session: " + session.getId());
-        System.out.println("=====================================\n");
+        // 向客户端推送用户信息更新消息
+        sendUserInfoUpdate(session, clientInfo);
 
         // 发送最近的消息给新连接的客户端
         List<ChatMessage> recentMessages = chatService.getRecentMessages(30);
@@ -68,6 +56,8 @@ public class WebSocketNativeController extends TextWebSocketHandler {
 
         // 广播在线用户数更新
         broadcastOnlineUserCount();
+
+        System.out.println("✓ WebSocket连接建立: " + clientInfo);
     }
 
     @Override
@@ -98,50 +88,19 @@ public class WebSocketNativeController extends TextWebSocketHandler {
 
     private void handleSendMessage(WebSocketSession session, Map<String, Object> payload) throws Exception {
         // 从WebSocket session中获取真实的客户端信息
-        String sessionIp = getClientIp(session);
-        String sessionUniqueId = getClientUniqueId(session);
-        String sessionName = getClientName(session);
+        String clientIp = getClientIp(session);
+        String clientName = getClientName(session);
 
         // 从payload中获取消息信息
-        String payloadIp = (String) payload.get("userIp");
-        String payloadUniqueId = (String) payload.get("uniqueId");
-        String payloadUserName = (String) payload.get("userName");
         String content = (String) payload.get("content");
         String messageType = (String) payload.get("messageType");
         Long fileId = payload.get("fileId") != null ? Long.valueOf(payload.get("fileId").toString()) : null;
 
-        // 使用session中的真实信息，而不是payload中的信息
-        String finalIp = sessionIp;
-        String finalUniqueId = sessionUniqueId;
-        String finalUserName = sessionName;
+        // 简化的调试信息
+        System.out.println("接收到消息: " + clientName + " (" + clientIp + ") - " + content);
 
-        // 添加详细的调试信息
-        System.out.println("\n=== 接收到消息详细分析 ===");
-        System.out.println("Session信息:");
-        System.out.println("  Session ID: " + session.getId());
-        System.out.println("  Session IP: " + sessionIp);
-        System.out.println("  Session UniqueID: " + sessionUniqueId);
-        System.out.println("  Session Name: " + sessionName);
-        System.out.println("Payload信息:");
-        System.out.println("  Payload IP: " + payloadIp);
-        System.out.println("  Payload UniqueID: " + payloadUniqueId);
-        System.out.println("  Payload UserName: " + payloadUserName);
-        System.out.println("最终使用的信息:");
-        System.out.println("  Final IP: " + finalIp);
-        System.out.println("  Final UniqueID: " + finalUniqueId);
-        System.out.println("  Final UserName: " + finalUserName);
-        System.out.println("  消息内容: " + content);
-        System.out.println("  消息类型: " + messageType);
-        System.out.println("  文件ID: " + fileId);
-        System.out.println("========================\n");
-
-        // 验证必要信息
-        if (finalIp.equals("unknown") || finalUniqueId.equals("unknown")) {
-            System.err.println("警告：无法获取有效的客户端身份信息");
-            // 可以选择拒绝消息或使用默认值
-        }
-
-        ChatMessage savedMessage = chatService.saveMessage(finalIp, finalUniqueId, finalUserName, content,
+        // 直接使用IP作为唯一标识，简化保存逻辑
+        ChatMessage savedMessage = chatService.saveMessage(clientIp, clientIp, clientName, content,
                 ChatMessage.MessageType.valueOf(messageType), fileId);
 
         ChatFile file = null;
@@ -190,21 +149,14 @@ public class WebSocketNativeController extends TextWebSocketHandler {
 
     private String extractClientInfo(WebSocketSession session) {
         try {
-            String uri = session.getUri().toString();
-            System.out.println("=== 开始提取客户端信息 ===");
-            System.out.println("WebSocket连接URI: " + uri);
-            System.out.println("Session ID: " + session.getId());
-
-            // 优先从握手拦截器获取的IP信息
+            // 直接从握手拦截器获取的真实IP
             Map<String, Object> attributes = session.getAttributes();
-            String handshakeIp = (String) attributes.get("clientIp");
-            if (handshakeIp != null && !handshakeIp.isEmpty() && !"unknown".equals(handshakeIp)) {
-                System.out.println("✓ 使用握手拦截器设置的IP: " + handshakeIp);
+            String realIp = (String) attributes.get("clientIp");
 
-                // 尝试从URI参数中获取完整的客户端信息（如果有的话）
-                String finalUniqueId = null;
-                String finalName = "未知用户";
-                String payloadIp = null;
+            if (realIp != null && !realIp.isEmpty() && !"unknown".equals(realIp)) {
+                // 尝试从URI参数中获取用户名（如果有的话）
+                String userName = "用户(" + realIp + ")";  // 默认用户名格式
+                String uri = session.getUri().toString();
 
                 if (uri != null && uri.contains("client=")) {
                     try {
@@ -216,188 +168,97 @@ public class WebSocketNativeController extends TextWebSocketHandler {
                             }
                             String clientParam = uri.substring(clientParamIndex + 7, paramEndIndex);
                             String clientInfo = java.net.URLDecoder.decode(clientParam, "UTF-8");
-                            System.out.println("从URL参数提取的客户端信息: " + clientInfo);
 
-                            // 解析客户端信息（格式：ip|uniqueId|name）
+                            // 简化解析：只获取用户名部分
                             String[] parts = clientInfo.split("\\|");
                             if (parts.length >= 3) {
-                                payloadIp = parts[0];
-                                finalUniqueId = parts[1];
-                                finalName = parts[2];
-                                System.out.println("✓ 从URL解析成功:");
-                                System.out.println("  Payload IP: " + payloadIp);
-                                System.out.println("  UniqueID: " + finalUniqueId);
-                                System.out.println("  Name: " + finalName);
+                                userName = parts[2];  // 使用传入的用户名
                             }
                         }
                     } catch (Exception e) {
-                        System.err.println("URL参数解析失败，使用默认值: " + e.getMessage());
+                        System.err.println("URL参数解析失败，使用默认用户名: " + e.getMessage());
                     }
                 }
 
-                // 智能IP选择：优先使用握手拦截器获取的真实IP
-                String finalIp = handshakeIp;
+                // 将简化的信息存储到session属性中
+                session.getAttributes().put("clientIp", realIp);
+                session.getAttributes().put("clientName", userName);
+                // 不再存储clientUniqueId等复杂信息
 
-                // 智能UniqueID处理：如果存在UniqueID，则使用现有的
-                if (finalUniqueId == null || finalUniqueId.isEmpty() || finalUniqueId.startsWith("unknown_")) {
-                    // 生成基于真实IP的临时UniqueID
-                    String userAgent = session.getHandshakeHeaders().getFirst("User-Agent");
-                    if (userAgent == null) {
-                        userAgent = "Unknown";
-                    }
-                    finalUniqueId = cn.yaklo.lanchat.util.IpUtil.generateTemporarySessionId(finalIp, userAgent);
-                    System.out.println("生成临时UniqueID: " + finalUniqueId);
-                }
-
-                // 将信息存储到session属性中
-                session.getAttributes().put("clientIp", finalIp);
-                session.getAttributes().put("clientUniqueId", finalUniqueId);
-                session.getAttributes().put("clientName", finalName);
-                session.getAttributes().put("payloadIp", payloadIp);
-
-                String clientInfo = finalIp + "|" + finalUniqueId + "|" + finalName;
-                System.out.println("最终客户端信息: " + clientInfo);
-                System.out.println("========================");
+                String clientInfo = realIp + "|" + userName;
+                System.out.println("客户端信息: " + clientInfo);
                 return clientInfo;
-            }
-
-            // 备用方案：尝试从URI参数中提取客户端信息
-            if (uri != null && uri.contains("client=")) {
-                try {
-                    int clientParamIndex = uri.indexOf("client=");
-                    if (clientParamIndex >= 0) {
-                        int paramEndIndex = uri.indexOf("&", clientParamIndex);
-                        if (paramEndIndex == -1) {
-                            paramEndIndex = uri.length();
-                        }
-                        String clientParam = uri.substring(clientParamIndex + 7, paramEndIndex);
-                        String clientInfo = java.net.URLDecoder.decode(clientParam, "UTF-8");
-                        System.out.println("从URL参数提取的客户端信息: " + clientInfo);
-
-                        // 解析客户端信息（格式：ip|uniqueId|name）
-                        String[] parts = clientInfo.split("\\|");
-                        if (parts.length >= 3) {
-                            String ip = parts[0];
-                            String uniqueId = parts[1];
-                            String name = parts[2];
-
-                            System.out.println("✓ URL解析成功:");
-                            System.out.println("  IP: " + ip);
-                            System.out.println("  UniqueID: " + uniqueId);
-                            System.out.println("  Name: " + name);
-
-                            // 将详细信息存储到session属性中
-                            session.getAttributes().put("clientIp", ip);
-                            session.getAttributes().put("clientUniqueId", uniqueId);
-                            session.getAttributes().put("clientName", name);
-
-                            System.out.println("最终客户端信息: " + clientInfo);
-                            System.out.println("========================");
-                            return clientInfo;
-                        }
-                    }
-                } catch (Exception e) {
-                    System.err.println("URL参数解析失败: " + e.getMessage());
-                    e.printStackTrace();
-                }
             }
 
             // 降级处理：使用默认值
             String fallbackIp = "127.0.0.1";
-            String fallbackUniqueId = "unknown_" + session.getId().substring(0, 8);
             String fallbackName = "未知用户";
-            String fallbackInfo = fallbackIp + "|" + fallbackUniqueId + "|" + fallbackName;
+            String fallbackInfo = fallbackIp + "|" + fallbackName;
 
-            System.out.println("使用降级方案:");
-            System.out.println("  IP: " + fallbackIp);
-            System.out.println("  UniqueID: " + fallbackUniqueId);
-            System.out.println("  Name: " + fallbackName);
-
-            // 设置默认值到session属性
             session.getAttributes().put("clientIp", fallbackIp);
-            session.getAttributes().put("clientUniqueId", fallbackUniqueId);
             session.getAttributes().put("clientName", fallbackName);
 
-            System.out.println("最终客户端信息: " + fallbackInfo);
-            System.out.println("========================");
+            System.out.println("使用默认客户端信息: " + fallbackInfo);
             return fallbackInfo;
 
         } catch (Exception e) {
-            System.err.println("提取客户端信息发生严重错误: " + e.getMessage());
-            e.printStackTrace();
-
-            // 紧急降级处理
+            System.err.println("提取客户端信息错误: " + e.getMessage());
             String emergencyIp = "127.0.0.1";
-            String emergencyUniqueId = "emergency_" + session.getId().substring(0, 8);
             String emergencyName = "紧急用户";
-            String emergencyInfo = emergencyIp + "|" + emergencyUniqueId + "|" + emergencyName;
+            String emergencyInfo = emergencyIp + "|" + emergencyName;
 
             session.getAttributes().put("clientIp", emergencyIp);
-            session.getAttributes().put("clientUniqueId", emergencyUniqueId);
             session.getAttributes().put("clientName", emergencyName);
 
-            System.out.println("紧急降级处理: " + emergencyInfo);
-            System.out.println("========================");
             return emergencyInfo;
         }
     }
 
     private String getClientIp(WebSocketSession session) {
-        Map<String, Object> attributes = session.getAttributes();
-
-        // 优先使用extractClientInfo中设置的IP
-        String clientIp = (String) attributes.get("clientIp");
-        if (clientIp != null && !clientIp.isEmpty() && !"unknown".equals(clientIp) && !"127.0.0.1".equals(clientIp)) {
-            System.out.println("✓ 使用extractClientInfo设置的IP: " + clientIp);
-            return clientIp;
-        }
-
-        // 备用方案：如果设置了127.0.0.1，也使用（表示本地连接）
+        String clientIp = (String) session.getAttributes().get("clientIp");
         if (clientIp != null && !clientIp.isEmpty()) {
-            System.out.println("✓ 使用备用IP: " + clientIp);
             return clientIp;
         }
-
-        System.err.println("⚠ 无法获取客户端IP，使用默认值");
-        return "127.0.0.1";
+        return "127.0.0.1";  // 默认IP
     }
 
     private String getClientUniqueId(WebSocketSession session) {
-        Map<String, Object> attributes = session.getAttributes();
-        String uniqueId = (String) attributes.get("clientUniqueId");
-
-        if (uniqueId != null && !uniqueId.isEmpty() && !uniqueId.startsWith("unknown_") && !uniqueId.startsWith("emergency_")) {
-            System.out.println("✓ 使用session中的UniqueID: " + uniqueId);
-            return uniqueId;
-        }
-
-        // 如果有unknown前缀的ID，也使用（表示降级情况）
-        if (uniqueId != null && !uniqueId.isEmpty()) {
-            System.out.println("✓ 使用降级UniqueID: " + uniqueId);
-            return uniqueId;
-        }
-
-        System.err.println("⚠ 无法获取UniqueID，生成默认值");
-        return "unknown_" + session.getId().substring(0, 8);
+        // 简化：直接使用IP作为唯一标识，不再生成复杂的UniqueID
+        return getClientIp(session);
     }
 
     private String getClientName(WebSocketSession session) {
-        Map<String, Object> attributes = session.getAttributes();
-        String name = (String) attributes.get("clientName");
-
-        if (name != null && !name.isEmpty() && !"未知用户".equals(name) && !"紧急用户".equals(name)) {
-            System.out.println("✓ 使用session中的用户名: " + name);
-            return name;
+        String clientName = (String) session.getAttributes().get("clientName");
+        if (clientName != null && !clientName.isEmpty()) {
+            return clientName;
         }
+        return "未知用户";  // 默认用户名
+    }
 
-        // 如果是默认用户名，也使用
-        if (name != null && !name.isEmpty()) {
-            System.out.println("✓ 使用默认用户名: " + name);
-            return name;
+    /**
+     * 向客户端发送用户信息更新
+     */
+    private void sendUserInfoUpdate(WebSocketSession session, String clientInfo) throws Exception {
+        // 解析客户端信息
+        String[] parts = clientInfo.split("\\|");
+        if (parts.length >= 2) {
+            String ip = parts[0];
+            String name = parts[1];
+
+            // 创建用户信息更新消息
+            Map<String, Object> userInfoUpdate = new HashMap<>();
+            userInfoUpdate.put("type", "userInfoUpdate");
+            userInfoUpdate.put("ip", ip);
+            userInfoUpdate.put("name", name);
+
+            String jsonMessage = objectMapper.writeValueAsString(userInfoUpdate);
+            TextMessage textMessage = new TextMessage(jsonMessage);
+
+            if (session.isOpen()) {
+                session.sendMessage(textMessage);
+                System.out.println("已向客户端推送用户信息更新: IP=" + ip + ", Name=" + name);
+            }
         }
-
-        System.err.println("⚠ 无法获取用户名，使用默认值");
-        return "未知用户";
     }
 
     public int getConnectedCount() {

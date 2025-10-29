@@ -34,14 +34,10 @@ public class ChatController {
     @GetMapping("/")
     public String chatPage(HttpServletRequest request, Model model) {
         String userIp = userService.getClientIp(request);
-        String uniqueUserId = userService.getUniqueUserId(request);
         String userName = userService.getUserName(request);
-        String displayName = userService.generateDisplayName(userIp, uniqueUserId);
 
         model.addAttribute("userIp", userIp);
-        model.addAttribute("uniqueUserId", uniqueUserId);
         model.addAttribute("userName", userName);
-        model.addAttribute("displayName", displayName);
         return "chat";
     }
 

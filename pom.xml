@@ -87,7 +87,6 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>cn.yaklo.lanchat.LanChatApplication</mainClass>
-                    <skip>true</skip>
                 </configuration>
                 <executions>
                     <execution>

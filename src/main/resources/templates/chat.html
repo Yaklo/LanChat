@@ -844,9 +844,8 @@
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
-            // 添加客户端信息到WebSocket URL参数中
-            const clientInfo = encodeURIComponent(currentUser.ip + '|' + currentUser.name);
-            const wsUrl = `${protocol}//${window.location.host}/ws/chat?client=${clientInfo}`;
+            // WebSocket连接不需要传递IP参数，后端通过握手获取真实IP
+            const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
 
             console.log('=== WebSocket连接信息 ===');
             console.log('连接URL:', wsUrl);
@@ -854,6 +853,7 @@
                 ip: currentUser.ip,
                 name: currentUser.name
             });
+            console.log('注意: IP信息将由后端通过WebSocket握手获取');
             console.log('========================');
 
             try {

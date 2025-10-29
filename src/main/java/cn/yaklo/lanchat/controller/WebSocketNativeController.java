@@ -154,36 +154,12 @@ public class WebSocketNativeController extends TextWebSocketHandler {
             String realIp = (String) attributes.get("clientIp");
 
             if (realIp != null && !realIp.isEmpty() && !"unknown".equals(realIp)) {
-                // 尝试从URI参数中获取用户名（如果有的话）
+                // 完全依赖握手获取的IP，不再使用URL参数
                 String userName = "用户(" + realIp + ")";  // 默认用户名格式
-                String uri = session.getUri().toString();
-
-                if (uri != null && uri.contains("client=")) {
-                    try {
-                        int clientParamIndex = uri.indexOf("client=");
-                        if (clientParamIndex >= 0) {
-                            int paramEndIndex = uri.indexOf("&", clientParamIndex);
-                            if (paramEndIndex == -1) {
-                                paramEndIndex = uri.length();
-                            }
-                            String clientParam = uri.substring(clientParamIndex + 7, paramEndIndex);
-                            String clientInfo = java.net.URLDecoder.decode(clientParam, "UTF-8");
-
-                            // 简化解析：只获取用户名部分
-                            String[] parts = clientInfo.split("\\|");
-                            if (parts.length >= 3) {
-                                userName = parts[2];  // 使用传入的用户名
-                            }
-                        }
-                    } catch (Exception e) {
-                        System.err.println("URL参数解析失败，使用默认用户名: " + e.getMessage());
-                    }
-                }
 
                 // 将简化的信息存储到session属性中
                 session.getAttributes().put("clientIp", realIp);
                 session.getAttributes().put("clientName", userName);
-                // 不再存储clientUniqueId等复杂信息
 
                 String clientInfo = realIp + "|" + userName;
                 System.out.println("客户端信息: " + clientInfo);
@@ -222,11 +198,7 @@ public class WebSocketNativeController extends TextWebSocketHandler {
         return "127.0.0.1";  // 默认IP
     }
 
-    private String getClientUniqueId(WebSocketSession session) {
-        // 简化：直接使用IP作为唯一标识，不再生成复杂的UniqueID
-        return getClientIp(session);
-    }
-
+    
     private String getClientName(WebSocketSession session) {
         String clientName = (String) session.getAttributes().get("clientName");
         if (clientName != null && !clientName.isEmpty()) {

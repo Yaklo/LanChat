@@ -745,7 +745,19 @@
             updateConnectionStatus('connecting');
 
             const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//${window.location.host}/ws/chat`;
+
+            // 添加客户端信息到WebSocket URL参数中
+            const clientInfo = encodeURIComponent(currentUser.ip + '|' + currentUser.uniqueId + '|' + currentUser.name);
+            const wsUrl = `${protocol}//${window.location.host}/ws/chat?client=${clientInfo}`;
+
+            console.log('=== WebSocket连接信息 ===');
+            console.log('连接URL:', wsUrl);
+            console.log('当前用户信息:', {
+                ip: currentUser.ip,
+                uniqueId: currentUser.uniqueId,
+                name: currentUser.name
+            });
+            console.log('========================');
 
             try {
                 stompClient = new WebSocket(wsUrl);

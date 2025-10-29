@@ -82,23 +82,49 @@ public class WebSocketNativeController extends TextWebSocketHandler {
 
     @SuppressWarnings("unchecked")
     private void handleSendMessage(WebSocketSession session, Map<String, Object> payload) throws Exception {
-        String userIp = (String) payload.get("userIp");
-        String uniqueId = (String) payload.get("uniqueId");
-        String userName = (String) payload.get("userName");
+        // 从WebSocket session中获取真实的客户端信息
+        String sessionIp = getClientIp(session);
+        String sessionUniqueId = getClientUniqueId(session);
+        String sessionName = getClientName(session);
+
+        // 从payload中获取消息信息
+        String payloadIp = (String) payload.get("userIp");
+        String payloadUniqueId = (String) payload.get("uniqueId");
+        String payloadUserName = (String) payload.get("userName");
         String content = (String) payload.get("content");
         String messageType = (String) payload.get("messageType");
         Long fileId = payload.get("fileId") != null ? Long.valueOf(payload.get("fileId").toString()) : null;
 
-        // 添加调试信息
-        System.out.println("=== 接收到消息 ===");
-        System.out.println("用户IP: " + userIp);
-        System.out.println("用户唯一ID: " + uniqueId);
-        System.out.println("用户名: " + userName);
-        System.out.println("消息内容: " + content);
-        System.out.println("Session ID: " + session.getId());
-        System.out.println("==================");
+        // 使用session中的真实信息，而不是payload中的信息
+        String finalIp = sessionIp;
+        String finalUniqueId = sessionUniqueId;
+        String finalUserName = sessionName;
 
-        ChatMessage savedMessage = chatService.saveMessage(userIp, uniqueId, userName, content,
+        // 添加详细的调试信息
+        System.out.println("=== 接收到消息详细分析 ===");
+        System.out.println("Session信息:");
+        System.out.println("  Session ID: " + session.getId());
+        System.out.println("  Session IP: " + sessionIp);
+        System.out.println("  Session UniqueID: " + sessionUniqueId);
+        System.out.println("  Session Name: " + sessionName);
+        System.out.println("Payload信息:");
+        System.out.println("  Payload IP: " + payloadIp);
+        System.out.println("  Payload UniqueID: " + payloadUniqueId);
+        System.out.println("  Payload UserName: " + payloadUserName);
+        System.out.println("最终使用的信息:");
+        System.out.println("  Final IP: " + finalIp);
+        System.out.println("  Final UniqueID: " + finalUniqueId);
+        System.out.println("  Final UserName: " + finalUserName);
+        System.out.println("消息内容: " + content);
+        System.out.println("========================");
+
+        // 验证必要信息
+        if (finalIp.equals("unknown") || finalUniqueId.equals("unknown")) {
+            System.err.println("警告：无法获取有效的客户端身份信息");
+            // 可以选择拒绝消息或使用默认值
+        }
+
+        ChatMessage savedMessage = chatService.saveMessage(finalIp, finalUniqueId, finalUserName, content,
                 ChatMessage.MessageType.valueOf(messageType), fileId);
 
         ChatFile file = null;
@@ -151,30 +177,103 @@ public class WebSocketNativeController extends TextWebSocketHandler {
             String uri = session.getUri().toString();
             System.out.println("WebSocket连接URI: " + uri);
 
-            // 从URI参数中提取客户端信息（如果有的话）
+            // 从URI参数中提取客户端信息
             if (uri.contains("client=")) {
                 String[] params = uri.split("&");
                 for (String param : params) {
                     if (param.startsWith("client=")) {
-                        return param.substring(7); // 去掉"client="前缀
+                        String clientInfo = param.substring(7); // 去掉"client="前缀
+                        // URL解码
+                        clientInfo = java.net.URLDecoder.decode(clientInfo, "UTF-8");
+                        System.out.println("从URL参数中提取的客户端信息: " + clientInfo);
+
+                        // 解析客户端信息（格式：ip|uniqueId|name）
+                        String[] parts = clientInfo.split("\\|");
+                        if (parts.length >= 3) {
+                            String ip = parts[0];
+                            String uniqueId = parts[1];
+                            String name = parts[2];
+
+                            System.out.println("解析的客户端信息:");
+                            System.out.println("  IP: " + ip);
+                            System.out.println("  UniqueID: " + uniqueId);
+                            System.out.println("  Name: " + name);
+
+                            // 将详细信息存储到session属性中
+                            session.getAttributes().put("clientIp", ip);
+                            session.getAttributes().put("clientUniqueId", uniqueId);
+                            session.getAttributes().put("clientName", name);
+
+                            return clientInfo;
+                        }
+                        return clientInfo;
                     }
                 }
             }
 
             // 如果URI中没有客户端信息，使用session ID + 时间戳作为唯一标识
-            return "Client_" + session.getId().substring(0, 8) + "_" + System.currentTimeMillis();
+            String fallbackInfo = "Client_" + session.getId().substring(0, 8) + "_" + System.currentTimeMillis();
+            System.out.println("URI中未找到客户端信息，使用默认标识: " + fallbackInfo);
+            return fallbackInfo;
         } catch (Exception e) {
             System.err.println("提取客户端信息失败: " + e.getMessage());
+            e.printStackTrace();
             // 降级处理：使用session ID作为客户端标识
-            return "Client_" + session.getId().substring(0, 8);
+            String fallbackInfo = "Client_" + session.getId().substring(0, 8);
+            System.out.println("降级处理，使用session ID: " + fallbackInfo);
+            return fallbackInfo;
         }
     }
 
     private String getClientIp(WebSocketSession session) {
-        // 从session属性中获取客户端信息
+        // 优先使用从URL参数中获取的IP
         Map<String, Object> attributes = session.getAttributes();
-        return (String) attributes.get("clientInfo");
+        String clientIp = (String) attributes.get("clientIp");
+
+        if (clientIp != null && !clientIp.isEmpty()) {
+            System.out.println("使用URL参数中的IP: " + clientIp);
+            return clientIp;
+        }
+
+        // 备用方案：使用握手拦截器设置的IP
+        clientIp = (String) attributes.get("clientIp_handshake");
+        if (clientIp != null && !clientIp.isEmpty()) {
+            System.out.println("使用握手拦截器设置的IP: " + clientIp);
+            return clientIp;
+        }
+
+        // 最后的降级方案：使用默认的clientInfo
+        String clientInfo = (String) attributes.get("clientInfo");
+        if (clientInfo != null && !clientInfo.isEmpty()) {
+            System.out.println("使用默认clientInfo: " + clientInfo);
+            return clientInfo;
+        }
+
+        System.err.println("无法获取客户端IP，使用默认值");
+        return "unknown";
     }
+
+  private String getClientUniqueId(WebSocketSession session) {
+      Map<String, Object> attributes = session.getAttributes();
+      String uniqueId = (String) attributes.get("clientUniqueId");
+
+      if (uniqueId != null && !uniqueId.isEmpty()) {
+          return uniqueId;
+      }
+
+      return "unknown_" + session.getId().substring(0, 8);
+  }
+
+  private String getClientName(WebSocketSession session) {
+      Map<String, Object> attributes = session.getAttributes();
+      String name = (String) attributes.get("clientName");
+
+      if (name != null && !name.isEmpty()) {
+          return name;
+      }
+
+      return "未知用户";
+  }
 
     public int getConnectedCount() {
         return sessions.size();

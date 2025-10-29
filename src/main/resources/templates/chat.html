@@ -673,8 +673,8 @@
 
                 <h4 style="margin-bottom: 10px; color: var(--text-secondary);">使用说明</h4>
                 <ul style="font-size: 12px; color: var(--text-muted); padding-left: 20px;">
-                    <li>支持发送文字消息</li>
-                    <li>支持上传文件（最大10MB）</li>
+                    <li>支持发送文字消息（最大128KB）</li>
+                    <li>支持上传文件（最大100MB）</li>
                     <li>可以撤回自己的消息</li>
                     <li>聊天记录永久保存</li>
                     <li>支持主题切换</li>
@@ -1293,8 +1293,8 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                 });
         }
 
-        // 最大消息内容大小（字节）- 10MB
-        const MAX_MESSAGE_SIZE = 10 * 1024 * 1024;
+        // 最大消息内容大小（字节）- 128KB
+        const MAX_MESSAGE_SIZE = 128 * 1024;
 
         // 发送消息
         function sendMessage() {
@@ -1306,8 +1306,8 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             // 检查消息大小
             const messageSize = new Blob([content]).size;
             if (messageSize > MAX_MESSAGE_SIZE) {
-                const maxSizeMB = MAX_MESSAGE_SIZE / (1024 * 1024);
-                alert(`消息内容过大，请限制在${maxSizeMB}MB以内。当前大小：${(messageSize / (1024 * 1024)).toFixed(2)}MB`);
+                const maxSizeKB = MAX_MESSAGE_SIZE / 1024;
+                alert(`消息内容过大，请限制在${maxSizeKB}KB以内。当前大小：${(messageSize / 1024).toFixed(2)}KB`);
                 return;
             }
 
@@ -1485,8 +1485,8 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
 
         // 上传文件
         function uploadFile(file) {
-            if (file.size > 10 * 1024 * 1024) {
-                alert('文件大小不能超过10MB');
+            if (file.size > 100 * 1024 * 1024) {
+                alert('文件大小不能超过100MB');
                 return;
             }
 

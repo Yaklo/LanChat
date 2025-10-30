@@ -16,7 +16,7 @@ java -jar LanChat.jar
 
 ### 2. 访问聊天室
 
-打开浏览器访问：`http://localhost:8078`
+打开浏览器访问：`http://localhost:8078` / `http://你的IP:8078`
 
 
 ## 功能特性

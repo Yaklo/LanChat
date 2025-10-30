@@ -1,6 +1,20 @@
-# 简单聊天室 (LanChat)
+# 轻量局域网聊天室 LanChat
 
 一个基于Spring Boot + WebSocket的简单聊天室应用，支持实时消息发送、文件上传和消息撤回功能。
+*AIGC，本项目99%部分的代码由AI完成，包括自述文件*
+
+## 快速开始
+
+### 1. 运行应用
+**需要Java8**
+```bash
+java -jar LanChat.jar
+```
+
+### 2. 访问聊天室
+
+打开浏览器访问：`http://localhost:8078`
+
 
 ## 功能特性
 
@@ -24,60 +38,52 @@
 - Java 8 或更高版本
 - Maven 3.6 或更高版本
 
-## 快速开始
-
-### 1. 编译项目
-
-```bash
-mvn clean compile
-```
-
-### 2. 运行应用
-
-```bash
-mvn spring-boot:run
-```
-
-### 3. 访问聊天室
-
-打开浏览器访问：`http://localhost:8078`
-
 ## 项目结构
 
 ```
 LanChat/
 ├── src/main/java/cn/yaklo/lanchat/
-│   ├── config/                 # 配置类
+│   ├── config/                      # 配置类
 │   │   ├── NativeWebSocketConfig.java
 │   │   └── WebSocketConfig.java
-│   ├── controller/             # 控制器
+│   ├── controller/                  # 控制器
 │   │   ├── ChatController.java
 │   │   ├── FileController.java
+│   │   ├── WebSocketController.java
 │   │   └── WebSocketNativeController.java
-│   ├── dto/                    # 数据传输对象
+│   ├── demos/                       # 演示代码
+│   │   └── web/
+│   │       ├── BasicController.java
+│   │       ├── PathVariableController.java
+│   │       └── User.java
+│   ├── dto/                         # 数据传输对象
 │   │   └── ChatMessageDto.java
-│   ├── entity/                 # 实体类
+│   ├── entity/                      # 实体类
 │   │   ├── ChatFile.java
 │   │   └── ChatMessage.java
-│   ├── repository/             # 数据访问层
+│   ├── interceptor/                 # 拦截器
+│   │   └── WebSocketHandshakeInterceptor.java
+│   ├── repository/                  # 数据访问层
 │   │   ├── ChatFileRepository.java
 │   │   └── ChatMessageRepository.java
-│   ├── service/                # 服务层
+│   ├── service/                     # 服务层
 │   │   ├── ChatService.java
 │   │   ├── FileService.java
 │   │   └── UserService.java
-│   ├── util/                   # 工具类
+│   ├── util/                        # 工具类
 │   │   └── IpUtil.java
-│   └── LanChatApplication.java  # 启动类
+│   └── LanChatApplication.java      # 启动类
 ├── src/main/resources/
-│   ├── templates/
-│   │   └── chat.html           # 聊天室页面
-│   ├── static/                 # 静态资源
-│   └── application.properties  # 配置文件
-├── data/                       # 运行时数据目录
-│   ├── db/                     # 数据库文件
-│   └── upfile/                 # 上传文件
-└── pom.xml                     # Maven配置
+│   ├── application.properties       # 配置文件
+│   ├── static/                      # 静态资源
+│   │   ├── index.html
+│   │   └── test.html
+│   └── templates/                   # 页面模板
+│       └── chat.html                # 聊天室页面
+├── data/                            # 运行时数据目录
+│   ├── db/                          # 数据库文件
+│   └── upfile/                      # 上传文件
+└── pom.xml                          # Maven配置
 ```
 
 ## 配置说明
@@ -89,96 +95,17 @@ LanChat/
 server.port=8078
 ```
 
+### 消息限制
+- 单条消息限制：128KB
+
 ### 文件上传配置
-- 最大文件大小：10MB
+- 最大文件大小：100MB
 - 上传目录：`./data/upfile`
 
 ### 数据库配置
 - 数据库类型：H2
 - 数据文件位置：`./data/db/chatdb`
 - Web控制台：`http://localhost:8078/h2-console`
-
-## API接口
-
-### WebSocket接口
-- 连接地址：`ws://localhost:8078/ws/chat`
-- 消息格式：JSON
-
-### REST接口
-
-#### 获取聊天记录
-```
-GET /api/messages?size=30&before=2023-01-01
-```
-
-#### 上传文件
-```
-POST /api/upload
-Content-Type: multipart/form-data
-```
-
-#### 下载文件
-```
-GET /api/file/{fileId}
-```
-
-#### 撤回消息
-```
-POST /api/recall/{messageId}
-```
-
-## 消息格式
-
-### 发送消息
-```json
-{
-  "type": "sendMessage",
-  "userIp": "192.168.1.100",
-  "userName": "192.168.1.100",
-  "content": "Hello World",
-  "messageType": "TEXT",
-  "fileId": null
-}
-```
-
-### 接收消息
-```json
-{
-  "id": 1,
-  "userIp": "192.168.1.100",
-  "userName": "192.168.1.100",
-  "content": "Hello World",
-  "timestamp": "2023-12-01 10:30:00",
-  "messageType": "TEXT",
-  "recalled": false,
-  "fileId": null,
-  "fileName": null,
-  "fileSize": null
-}
-```
-
-## 部署说明
-
-### 1. 打包应用
-
-```bash
-mvn clean package
-```
-
-### 2. 运行JAR文件
-
-```bash
-java -jar target/LanChat-0.0.1-SNAPSHOT.jar
-```
-
-### 3. Docker部署（可选）
-
-```dockerfile
-FROM openjdk:8-jre-alpine
-COPY target/LanChat-0.0.1-SNAPSHOT.jar app.jar
-EXPOSE 8078
-ENTRYPOINT ["java", "-jar", "/app.jar"]
-```
 
 ## 注意事项
 

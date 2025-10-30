@@ -696,6 +696,18 @@
                 在线用户: <span id="onlineCount">0</span>
             </div>
 
+            <div style="background: var(--bg-secondary); padding: 15px; border-radius: 10px; margin: 10px 0; box-shadow: 0 2px 10px var(--shadow-light); border: 1px solid var(--border-primary); font-size: 12px; color: var(--text-muted);">
+                <div style="margin-bottom: 8px;">
+                    <strong style="color: var(--text-secondary);">聊天记录统计</strong>
+                </div>
+                <div style="margin-bottom: 5px;">
+                    已加载: <span id="loadedMessagesCount">0</span> 条
+                </div>
+                <div>
+                    服务器总数: <span id="totalMessagesCount">0</span> 条
+                </div>
+            </div>
+
             <div style="flex: 1; overflow-y: auto;">
                 <div style="margin-bottom: 20px;">
                     <h4 style="margin-bottom: 10px; color: var(--text-secondary);">主题设置</h4>
@@ -765,6 +777,8 @@
         let oldestMessageTimestamp = null;
         let hasMoreMessages = true;
         let fileUploadInProgress = false;
+        let loadedMessagesCount = 0;  // 已加载的消息数
+        let totalMessagesCount = 0;   // 服务器总消息数
 
         // 打印当前用户信息用于调试
         console.log('=== 初始用户信息 ===');
@@ -1150,6 +1164,24 @@
             }
         }
 
+        // 更新聊天记录统计显示
+        function updateMessageStats(loaded, total) {
+            loadedMessagesCount = loaded;
+            totalMessagesCount = total;
+            
+            const loadedElement = document.getElementById('loadedMessagesCount');
+            const totalElement = document.getElementById('totalMessagesCount');
+            
+            if (loadedElement) {
+                loadedElement.textContent = loadedMessagesCount;
+            }
+            if (totalElement) {
+                totalElement.textContent = totalMessagesCount;
+            }
+            
+            console.log('聊天记录统计: 已加载 ' + loadedMessagesCount + ' 条，服务器总数 ' + totalMessagesCount + ' 条');
+        }
+
         // 添加消息到UI
         function addMessageToUI(message) {
             const messagesList = document.getElementById('messagesList');
@@ -1233,6 +1265,9 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                             addMessageToUI(message);
                         });
 
+                        // 更新统计信息
+                        updateMessageStats(data.messages.length, data.totalCount);
+
                         // 如果消息少于30条，隐藏"加载更多"按钮
                         if (data.messages.length < 30) {
                             hasMoreMessages = false;
@@ -1241,6 +1276,7 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                     } else {
                         hasMoreMessages = false;
                         document.getElementById('loadMoreBtn').style.display = 'none';
+                        updateMessageStats(0, 0);
                     }
                 })
                 .catch(error => {
@@ -1265,6 +1301,9 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                         const messagesList = document.getElementById('messagesList');
                         const firstMessage = messagesList.firstChild;
 
+                        // 保存原始消息数组（反向前）以便获取最早的消息时间戳
+                        const originalMessages = [...data.messages];
+                        
                         // 反向添加消息到列表前面
                         data.messages.reverse().forEach(message => {
                             const messageDiv = document.createElement('div');
@@ -1311,12 +1350,16 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                         });
 
                         // 更新最早消息的时间戳为新加载消息中最早的那条
-                        // 由于消息已反向添加，所以最后一条消息是最早的
-                        const lastMessage = data.messages[data.messages.length - 1];
-                        if (lastMessage) {
-                            oldestMessageTimestamp = lastMessage.timestamp;
+                        // 由于后端返回的消息已按 DESC 排序，所以最后一条是最早的
+                        const earliestMessage = originalMessages[originalMessages.length - 1];
+                        if (earliestMessage) {
+                            oldestMessageTimestamp = earliestMessage.timestamp;
                             console.log('更新最早时间戳为:', oldestMessageTimestamp);
                         }
+
+                        // 更新统计信息：已加载消息数累加，总数保持不变
+                        loadedMessagesCount += data.messages.length;
+                        updateMessageStats(loadedMessagesCount, data.totalCount);
 
                         // 如果加载的消息少于30条，说明没有更多历史消息了
                         if (data.messages.length < 30) {

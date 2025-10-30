@@ -128,7 +128,3 @@ A: 修改`application.properties`中的`spring.servlet.multipart.max-file-size`�
 
 ### Q: 数据库密码是什么？
 A: 用户名：san，密码：空（可在application.properties中修改）
-
-## 许可证
-
-本项目仅供学习和内部使用。

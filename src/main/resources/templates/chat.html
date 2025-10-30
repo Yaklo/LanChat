@@ -1347,6 +1347,9 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
 `.trim();
 
                             messagesList.insertBefore(messageDiv, firstMessage);
+                            
+                            // 应用颜色头像
+                            applyColorAvatar(messageDiv, message.userIp, isOwnMessage);
                         });
 
                         // 更新最早消息的时间戳为新加载消息中最早的那条

@@ -1247,7 +1247,6 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                     console.error('Error loading messages:', error);
                 });
         }
-
         // 加载更多历史消息
         function loadMoreMessages() {
             if (!hasMoreMessages || oldestMessageTimestamp === null) return;
@@ -1256,10 +1255,12 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
             btn.textContent = '加载中...';
             btn.disabled = true;
 
-            const beforeDate = oldestMessageTimestamp.split(' ')[0];
-            fetch(`/api/messages?before=${beforeDate}&size=30`)
+            // 发送完整的时间戳（不再只发送日期部分）
+            console.log('加载更多消息，最早时间戳:', oldestMessageTimestamp);
+            fetch(`/api/messages?before=${encodeURIComponent(oldestMessageTimestamp)}&size=30`)
                 .then(response => response.json())
                 .then(data => {
+                    console.log('收到历史消息:', data.messages ? data.messages.length : 0, '条');
                     if (data.messages && data.messages.length > 0) {
                         const messagesList = document.getElementById('messagesList');
                         const firstMessage = messagesList.firstChild;

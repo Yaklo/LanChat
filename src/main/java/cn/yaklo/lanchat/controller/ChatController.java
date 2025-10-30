@@ -50,10 +50,21 @@ public class ChatController {
 
         List<ChatMessage> messages;
         if (before != null && !before.isEmpty()) {
-            LocalDateTime timestamp = LocalDateTime.parse(before + " 00:00:00",
-                    java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-            messages = chatService.getMessagesBefore(timestamp, size);
+            try {
+                // 尝试解析完整的时间戳格式（yyyy-MM-dd HH:mm:ss）
+                LocalDateTime timestamp = LocalDateTime.parse(before,
+                        java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                System.out.println("加载指定时间戳之前的消息: " + timestamp);
+                messages = chatService.getMessagesBefore(timestamp, size);
+                System.out.println("加载到 " + messages.size() + " 条消息");
+            } catch (Exception e) {
+                System.err.println("时间戳解析失败: " + before + "，错误: " + e.getMessage());
+                e.printStackTrace();
+                // 如果解析失败，返回最近的消息
+                messages = chatService.getRecentMessages(size);
+            }
         } else {
+            System.out.println("加载最近的消息");
             messages = chatService.getRecentMessages(size);
         }
 
@@ -101,7 +112,6 @@ public class ChatController {
             @RequestBody Map<String, String> request,
             HttpServletRequest httpRequest) {
 
-        String userIp = userService.getClientIp(httpRequest);
         String newUserName = request.get("userName");
 
         // 验证用户名格式

@@ -1310,6 +1310,14 @@ ${isOwnMessage ? `<button class="recall-btn" onclick="recallMessage(${message.id
                             messagesList.insertBefore(messageDiv, firstMessage);
                         });
 
+                        // 更新最早消息的时间戳为新加载消息中最早的那条
+                        // 由于消息已反向添加，所以最后一条消息是最早的
+                        const lastMessage = data.messages[data.messages.length - 1];
+                        if (lastMessage) {
+                            oldestMessageTimestamp = lastMessage.timestamp;
+                            console.log('更新最早时间戳为:', oldestMessageTimestamp);
+                        }
+
                         // 如果加载的消息少于30条，说明没有更多历史消息了
                         if (data.messages.length < 30) {
                             hasMoreMessages = false;

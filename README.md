@@ -1,7 +1,10 @@
 # 轻量局域网聊天室 LanChat
 
 一个基于Spring Boot + WebSocket的简单聊天室应用，支持实时消息发送、文件上传和消息撤回功能。
+
 *AIGC，本项目99%部分的代码由AI完成，包括自述文件*
+
+![实机效果展示](/README/README-1.jpg)
 
 ## 快速开始
 
